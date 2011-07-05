@@ -12,17 +12,16 @@ Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
  src/java/org/apache/solr/core/SolrCore.java |    1 +
  1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/src/java/org/apache/solr/core/SolrCore.java b/src/java/org/apache/solr/core/SolrCore.java
-index 83570b2..95a1d45 100644
---- a/src/java/org/apache/solr/core/SolrCore.java
-+++ b/src/java/org/apache/solr/core/SolrCore.java
-@@ -360,6 +360,7 @@ public final class SolrCore implements SolrInfoMBean {
+Index: solr/src/java/org/apache/solr/core/SolrCore.java
+===================================================================
+--- solr.orig/src/java/org/apache/solr/core/SolrCore.java	2011-06-22 14:42:19.000000000 +0200
++++ solr/src/java/org/apache/solr/core/SolrCore.java	2011-07-05 10:39:45.213649332 +0200
+@@ -369,7 +369,7 @@
  
    void initIndex() {
      try {
+-
 +      System.setProperty( "org.apache.lucene.lockDir", dataDir );
-       File dirFile = new File(getNewIndexDir());
-       boolean indexExists = dirFile.canRead();
-       boolean firstTime;
--- 
-tg: (0ec0e86..) debian/fix-lucene-lock-directory (depends on: upstream)
+       initDirectoryFactory();
+       String indexDir = getNewIndexDir();
+       boolean indexExists = getDirectoryFactory().exists(indexDir);

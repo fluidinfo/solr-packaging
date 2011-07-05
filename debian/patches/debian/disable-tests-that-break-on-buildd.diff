@@ -13,11 +13,11 @@ Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
  .../org/apache/solr/update/AutoCommitTest.java     |    4 +++-
  3 files changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/src/test/org/apache/solr/common/util/ContentStreamTest.java b/src/test/org/apache/solr/common/util/ContentStreamTest.java
-index d0344d8..f508002 100644
---- a/src/test/org/apache/solr/common/util/ContentStreamTest.java
-+++ b/src/test/org/apache/solr/common/util/ContentStreamTest.java
-@@ -55,7 +55,7 @@ public class ContentStreamTest extends TestCase
+Index: solr/src/test/org/apache/solr/common/util/ContentStreamTest.java
+===================================================================
+--- solr.orig/src/test/org/apache/solr/common/util/ContentStreamTest.java	2011-02-04 13:50:14.000000000 +0100
++++ solr/src/test/org/apache/solr/common/util/ContentStreamTest.java	2011-07-05 10:36:53.614149929 +0200
+@@ -61,7 +61,7 @@
      assertTrue( IOUtils.contentEquals( new FileReader(      file ), stream.getReader() ) );
    }
    
@@ -25,40 +25,40 @@ index d0344d8..f508002 100644
 +/* Disabled for Debian build because this test needs network access
    public void testURLStream() throws IOException 
    {
-     String content = null;
-@@ -87,4 +87,5 @@ public class ContentStreamTest extends TestCase
+     byte[] content = null;
+@@ -100,4 +100,5 @@
      stream = new ContentStreamBase.URLStream( url );
-     assertTrue( IOUtils.contentEquals( new StringReader( content ), stream.getReader() ) );
+     assertTrue( IOUtils.contentEquals( new StringReader(new String(content, charset)), stream.getReader() ) );
    }
 +*/
  }
-diff --git a/src/test/org/apache/solr/servlet/SolrRequestParserTest.java b/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
-index ad9bc47..e4d20fe 100644
---- a/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
-+++ b/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
-@@ -95,7 +95,7 @@ public class SolrRequestParserTest extends AbstractSolrTestCase {
+Index: solr/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
+===================================================================
+--- solr.orig/src/test/org/apache/solr/servlet/SolrRequestParserTest.java	2011-02-04 13:50:14.000000000 +0100
++++ solr/src/test/org/apache/solr/servlet/SolrRequestParserTest.java	2011-07-05 10:38:31.553649168 +0200
+@@ -106,7 +106,8 @@
      }
-   }
-   
--
-+/* Disabled for Debian builds because this test needs network access
-   public void testStreamURL() throws Exception
-   {
-     boolean ok = false;
-@@ -121,7 +121,7 @@ public class SolrRequestParserTest extends AbstractSolrTestCase {
-     assertEquals( 1, streams.size() );
-     assertEquals( txt, IOUtils.toString( streams.get(0).getStream() ) );
+     req.close();
    }
 -  
-+*/ 
-   public void testUrlParamParsing()
++
++/* Disabled for Debian builds because this test needs network access
+   @Test
+   public void testStreamURL() throws Exception
    {
-     String[][] teststr = new String[][] {
-diff --git a/src/test/org/apache/solr/update/AutoCommitTest.java b/src/test/org/apache/solr/update/AutoCommitTest.java
-index dedcedd..438c1a6 100644
---- a/src/test/org/apache/solr/update/AutoCommitTest.java
-+++ b/src/test/org/apache/solr/update/AutoCommitTest.java
-@@ -98,6 +98,8 @@ public class AutoCommitTest extends AbstractSolrTestCase {
+@@ -137,6 +138,7 @@
+     assertArrayEquals( bytes, IOUtils.toByteArray( streams.get(0).getStream() ) );
+     req.close();
+   }
++*/
+   
+   @Test
+   public void testUrlParamParsing()
+Index: solr/src/test/org/apache/solr/update/AutoCommitTest.java
+===================================================================
+--- solr.orig/src/test/org/apache/solr/update/AutoCommitTest.java	2011-01-30 17:08:25.000000000 +0100
++++ solr/src/test/org/apache/solr/update/AutoCommitTest.java	2011-07-05 10:36:53.618151000 +0200
+@@ -99,6 +99,8 @@
  
    /* This test is causing too many failures on one of the build slaves.
       Temporarily disabled. -Mike Klaas */
@@ -67,7 +67,7 @@ index dedcedd..438c1a6 100644
    public void XXXtestMaxDocs() throws Exception {
  
      SolrCore core = h.getCore();
-@@ -144,7 +146,7 @@ public class AutoCommitTest extends AbstractSolrTestCase {
+@@ -145,7 +147,7 @@
      assertEquals( 1, tracker.getCommitCount());
      
    }
@@ -76,5 +76,3 @@ index dedcedd..438c1a6 100644
    public void testMaxTime() throws Exception {
      SolrCore core = h.getCore();
      CommitListener trigger = new CommitListener(core);    
--- 
-tg: (0ec0e86..) debian/disable-tests-that-break-on-buildd (depends on: upstream)

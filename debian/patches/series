@@ -1,4 +1,4 @@
-debian/disable-tests-that-break-on-buildd.diff -p1
-debian/fix-lucene-lock-directory.diff -p1
-debian/solr-example-solrconfig.diff -p1
-debian/use-debian-java-libraries.diff -p1
+debian/disable-tests-that-break-on-buildd.diff
+debian/fix-lucene-lock-directory.diff
+debian/solr-example-solrconfig.diff
+debian/use-debian-java-libraries.diff
