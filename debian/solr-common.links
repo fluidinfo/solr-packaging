@@ -7,12 +7,6 @@
 /usr/share/java/commons-io.jar          /usr/share/solr/WEB-INF/lib/commons-io.jar
 /usr/share/java/jetty.jar               /usr/share/solr/WEB-INF/lib/jetty.jar
 /usr/share/java/jetty-util.jar          /usr/share/solr/WEB-INF/lib/jetty-util.jar
-/usr/share/java/lucene-analyzers.jar    /usr/share/solr/WEB-INF/lib/lucene-analyzers.jar
-/usr/share/java/lucene-core.jar         /usr/share/solr/WEB-INF/lib/lucene-core.jar
-/usr/share/java/lucene-highlighter.jar  /usr/share/solr/WEB-INF/lib/lucene-highlighter.jar
-/usr/share/java/lucene-queries.jar      /usr/share/solr/WEB-INF/lib/lucene-queries.jar
-/usr/share/java/lucene-snowball.jar     /usr/share/solr/WEB-INF/lib/lucene-snowball.jar
-/usr/share/java/lucene-spellchecker.jar /usr/share/solr/WEB-INF/lib/lucene-spellchecker.jar
 /usr/share/java/slf4j-api.jar           /usr/share/solr/WEB-INF/lib/slf4j-api.jar
 /usr/share/java/slf4j-jdk14.jar         /usr/share/solr/WEB-INF/lib/slf4j-jdk14.jar 
 /usr/share/java/xml-apis-ext.jar        /usr/share/solr/WEB-INF/lib/xml-apis-ext.jar
