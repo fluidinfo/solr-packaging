@@ -1,0 +1,136 @@
+Index: apache-solr-3.3.0/solr/build.xml
+===================================================================
+--- apache-solr-3.3.0.orig/solr/build.xml	2011-07-05 11:27:40.882148181 +0200
++++ apache-solr-3.3.0/solr/build.xml	2011-07-05 11:27:47.189648384 +0200
+@@ -24,7 +24,7 @@
+   <import file="common-build.xml"/>
+   
+   <!-- 3rd party libraries for compilation -->
+-  <property name="lib" location="lib" />
++  <property name="lib" value="/usr/share/java" />
+ 
+   <!-- solr source files -->
+   <property name="src" location="src" />
+@@ -90,7 +90,23 @@
+   <!-- The compilation classpath -->
+   <path id="compile.classpath">
+     <fileset dir="${lib}">
+-      <include name="*.jar" />
++      <include name="commons-codec.jar" />
++      <include name="commons-csv.jar" />
++      <include name="commons-fileupload.jar" />
++      <include name="commons-httpclient.jar" />
++      <include name="commons-io.jar" />
++      <include name="jetty.jar" />
++      <include name="jetty-util.jar" />
++      <include name="lucene-analyzers.jar" />
++      <include name="lucene-core.jar" />
++      <include name="lucene-highlighter.jar" />
++      <include name="lucene-queries.jar" />
++      <include name="lucene-snowball.jar" />
++      <include name="lucene-spellchecker.jar" />
++      <include name="servlet-api-2.5.jar" />
++      <include name="slf4j-api.jar" />
++      <include name="xml-apis-ext.jar" />
++      <include name="xml-apis.jar" />
+     </fileset>
+     <path refid="lucene.classpath"/>
+   </path>
+@@ -112,9 +128,9 @@
+     <path refid="compile.classpath" />
+     <pathelement location="${dest}/solrj"/>
+     <!-- jetty -->
+-    <fileset dir="example/lib">
++    <!--fileset dir="example/lib">
+       <include name="**/*.jar" />
+-    </fileset>
++    </fileset-->
+   </path>
+     
+   <!-- Compile the project. -->
+@@ -358,6 +374,13 @@
+     <path refid="compile.classpath.solrj" />
+     <pathelement location="${common-solr.dir}/../lucene/build/classes/test-framework" />  <!-- include some lucene test code -->
+     <pathelement path="${java.class.path}"/>
++    <fileset dir="/usr/share/java">
++      <include name="junit4.jar" />
++      <include name="easymock.jar" />
++      <include name="jcl-over-slf4j.jar" />
++      <include name="slf4j-jdk14.jar" />
++      <include name="lucene-memory.jar" />
++    </fileset>
+   </path>
+ 
+   <target name="compileTestFramework" depends="compile,compile-solrj">
+Index: apache-solr-3.3.0/solr/common-build.xml
+===================================================================
+--- apache-solr-3.3.0.orig/solr/common-build.xml	2011-07-05 11:26:45.458149754 +0200
++++ apache-solr-3.3.0/solr/common-build.xml	2011-07-05 11:27:47.194149429 +0200
+@@ -333,7 +333,9 @@
+         <property name="lucene-compiled" value="${lucene.compiled}"/>
+         <fileset dir="."
+                  includes="contrib/*/build.xml"
++                 excludes="contrib/clustering/build.xml,contrib/extraction/build.xml,contrib/velocity/build.xml"
+         />
++                 <!-- The above excludes have missing build dependencies in debian -->
+       </subant>
+     </sequential>
+   </macrodef>
+Index: apache-solr-3.3.0/solr/contrib/dataimporthandler/build.xml
+===================================================================
+--- apache-solr-3.3.0.orig/solr/contrib/dataimporthandler/build.xml	2011-07-05 11:26:54.601650786 +0200
++++ apache-solr-3.3.0/solr/contrib/dataimporthandler/build.xml	2011-07-05 11:27:47.194149429 +0200
+@@ -36,7 +36,13 @@
+   <path id="common.classpath">
+   	<pathelement location="${solr-path}/build/solr" />
+   	<pathelement location="${solr-path}/build/solrj" />
+-  	<fileset dir="${solr-path}/lib" includes="*.jar"/>
++    <fileset dir="/usr/share/java">
++      <include name="commons-io.jar" />
++      <include name="lucene-core.jar" />
++      <include name="slf4j-api.jar" />
++      <include name="xml-apis.jar" />
++      <include name="xml-apis-ext.jar" />
++    </fileset>
+     <path refid="lucene.classpath"/>
+   </path>
+ 
+@@ -44,9 +50,11 @@
+   	<pathelement location="${solr-path}/build/solr" />
+   	<pathelement location="${solr-path}/build/solrj" />
+   	<pathelement location="target/classes" />
+-  	<fileset dir="${solr-path}/lib" includes="*.jar"/>
+-  	<fileset dir="lib/" includes="*.jar"/>
+-  	<fileset dir="${tikalibs-path}" includes="*.jar"/>
++       <!--fileset dir="${tikalibs-path}" includes="*.jar"/-->
++    <fileset dir="/usr/share/java">
++      <include name="slf4j-api.jar" />
++      <include name="gnumail.jar" />
++    </fileset>
+     <path refid="lucene.classpath"/>
+   </path>
+ 	
+@@ -111,11 +119,11 @@
+     </solr-javac>
+   </target>
+ 	
+-  <target name="build" depends="compile,compileExtras">
++  <target name="build" depends="compile">
+     <solr-jar destfile="target/${fullnamever}.jar" basedir="target/classes"
+               manifest="../../${dest}/META-INF/MANIFEST.MF" />
+-    <solr-jar destfile="target/apache-${ant.project.name}-extras-${version}.jar" basedir="target/extras/classes"
+-              manifest="../../${dest}/META-INF/MANIFEST.MF" />
++    <!--solr-jar destfile="target/apache-${ant.project.name}-extras-${version}.jar" basedir="target/extras/classes"
++              manifest="${common.dir}/${dest}/META-INF/MANIFEST.MF" /-->
+   </target>
+ 	
+   <target name="compileTests" depends="compileCoreTests,compileExtrasTests"/>
+@@ -248,7 +256,7 @@
+   	<mkdir dir="../../build/web/WEB-INF/lib"/>
+   	<!--<copy file="target/${fullnamever}.jar" todir="${solr-path}/build/web/WEB-INF/lib"></copy>-->
+   	<copy file="target/${fullnamever}.jar" todir="${solr-path}/dist"></copy>
+-  	<copy file="target/apache-${ant.project.name}-extras-${version}.jar" todir="${solr-path}/dist"></copy>
++  	<!--copy file="target/apache-${ant.project.name}-extras-${version}.jar" todir="${solr-path}/dist"></copy-->
+   </target>
+ 	
+   <target name="javadoc">

@@ -1,0 +1,13 @@
+Index: apache-solr-3.3.0/solr/src/java/org/apache/solr/core/SolrCore.java
+===================================================================
+--- apache-solr-3.3.0.orig/solr/src/java/org/apache/solr/core/SolrCore.java	2011-07-05 11:24:51.166150095 +0200
++++ apache-solr-3.3.0/solr/src/java/org/apache/solr/core/SolrCore.java	2011-07-05 11:25:02.545649593 +0200
+@@ -369,7 +369,7 @@
+ 
+   void initIndex() {
+     try {
+-
++      System.setProperty( "org.apache.lucene.lockDir", dataDir );
+       initDirectoryFactory();
+       String indexDir = getNewIndexDir();
+       boolean indexExists = getDirectoryFactory().exists(indexDir);

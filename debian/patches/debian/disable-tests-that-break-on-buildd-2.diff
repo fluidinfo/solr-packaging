@@ -1,0 +1,63 @@
+Index: apache-solr-3.3.0/solr/src/test/org/apache/solr/common/util/ContentStreamTest.java
+===================================================================
+--- apache-solr-3.3.0.orig/solr/src/test/org/apache/solr/common/util/ContentStreamTest.java	2011-07-05 11:22:45.537647670 +0200
++++ apache-solr-3.3.0/solr/src/test/org/apache/solr/common/util/ContentStreamTest.java	2011-07-05 11:23:16.285649554 +0200
+@@ -61,7 +61,7 @@
+     assertTrue( IOUtils.contentEquals( new FileReader(      file ), stream.getReader() ) );
+   }
+   
+-
++/* Disabled for Debian build because this test needs network access
+   public void testURLStream() throws IOException 
+   {
+     byte[] content = null;
+@@ -100,4 +100,5 @@
+     stream = new ContentStreamBase.URLStream( url );
+     assertTrue( IOUtils.contentEquals( new StringReader(new String(content, charset)), stream.getReader() ) );
+   }
++*/
+ }
+Index: apache-solr-3.3.0/solr/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
+===================================================================
+--- apache-solr-3.3.0.orig/solr/src/test/org/apache/solr/servlet/SolrRequestParserTest.java	2011-07-05 11:22:45.505649678 +0200
++++ apache-solr-3.3.0/solr/src/test/org/apache/solr/servlet/SolrRequestParserTest.java	2011-07-05 11:23:16.289650127 +0200
+@@ -106,7 +106,8 @@
+     }
+     req.close();
+   }
+-  
++
++/* Disabled for Debian builds because this test needs network access
+   @Test
+   public void testStreamURL() throws Exception
+   {
+@@ -137,6 +138,7 @@
+     assertArrayEquals( bytes, IOUtils.toByteArray( streams.get(0).getStream() ) );
+     req.close();
+   }
++*/
+   
+   @Test
+   public void testUrlParamParsing()
+Index: apache-solr-3.3.0/solr/src/test/org/apache/solr/update/AutoCommitTest.java
+===================================================================
+--- apache-solr-3.3.0.orig/solr/src/test/org/apache/solr/update/AutoCommitTest.java	2011-07-05 11:22:45.565654285 +0200
++++ apache-solr-3.3.0/solr/src/test/org/apache/solr/update/AutoCommitTest.java	2011-07-05 11:23:16.289650127 +0200
+@@ -99,6 +99,8 @@
+ 
+   /* This test is causing too many failures on one of the build slaves.
+      Temporarily disabled. -Mike Klaas */
++/* Commented out for Debian builds. Apparently some of the buildd's try to
++ * perform this test anyway (and break)
+   public void XXXtestMaxDocs() throws Exception {
+ 
+     SolrCore core = h.getCore();
+@@ -145,7 +147,7 @@
+     assertEquals( 1, tracker.getCommitCount());
+     
+   }
+-
++*/
+   public void testMaxTime() throws Exception {
+     SolrCore core = h.getCore();
+     CommitListener trigger = new CommitListener(core);    
