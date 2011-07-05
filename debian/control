@@ -25,7 +25,7 @@ Build-Depends: cdbs, debhelper (>= 7.4.10), po-debconf,
  libgnumail-java,
  junit4,
  libjmock-java
-Build-Conflicts: liblucene2-java (< 3.3)
+Build-Conflicts: liblucene2-java (<< 3.3)
 
 Package: solr-common
 Architecture: all
