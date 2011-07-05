@@ -1,0 +1,49 @@
+From: Jan-Pascal van Best <janpascal@vanbest.org>
+Subject: [PATCH] debian/contrib-dataimporthandler-use-debian-libs
+
+
+
+Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
+
+---
+ contrib/dataimporthandler/build.xml |   13 ++++++++++---
+ 1 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/contrib/dataimporthandler/build.xml b/contrib/dataimporthandler/build.xml
+index d4a4e58..4ae6bc2 100644
+--- a/contrib/dataimporthandler/build.xml
++++ b/contrib/dataimporthandler/build.xml
+@@ -20,6 +20,7 @@
+ <project name="solr-dataimporthandler" default="build">
+ 	
+   <property name="solr-path" value="../.." />
++  <property name="lib" value="/usr/share/java"/>
+ 	
+   <import file="../../common-build.xml"/>
+ 
+@@ -30,14 +31,20 @@
+   <path id="common.classpath">
+   	<pathelement location="${solr-path}/build/common" />
+   	<pathelement location="${solr-path}/build/core" />
+-  	<fileset dir="${solr-path}/lib" includes="*.jar"></fileset>
++  	<fileset dir="${lib}">
++          <include name="lucene-core.jar"/>
++          <include name="junit4.jar"/>
++        </fileset>
+   </path>
+ 	
+   <path id="test.classpath">
+   	<path refid="common.classpath" />
+-	  <pathelement path="target/classes" />
++	<pathelement path="target/classes" />
+   	<pathelement path="target/test-classes" />
+-    <pathelement path="${java.class.path}"/>
++        <pathelement path="${java.class.path}"/>
++  	<fileset dir="${lib}">
++          <include name="lucene-highlighter.jar"/>
++        </fileset>
+   </path>
+ 	
+   <target name="clean">
+-- 
+tg: (a1b411f..) debian/contrib-dataimporthandler-use-debian-libs (depends on: upstream)

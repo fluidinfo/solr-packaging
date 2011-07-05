@@ -1,0 +1,80 @@
+From: Jan-Pascal van Best <janpascal@vanbest.org>
+Subject: [PATCH] debian/disable-tests-that-break-on-buildd
+
+Disable tests that need network access, because they fail for (some of)
+the autobuilders
+
+
+Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
+
+---
+ .../apache/solr/common/util/ContentStreamTest.java |    3 ++-
+ .../apache/solr/servlet/SolrRequestParserTest.java |    4 ++--
+ .../org/apache/solr/update/AutoCommitTest.java     |    4 +++-
+ 3 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/src/test/org/apache/solr/common/util/ContentStreamTest.java b/src/test/org/apache/solr/common/util/ContentStreamTest.java
+index d0344d8..f508002 100644
+--- a/src/test/org/apache/solr/common/util/ContentStreamTest.java
++++ b/src/test/org/apache/solr/common/util/ContentStreamTest.java
+@@ -55,7 +55,7 @@ public class ContentStreamTest extends TestCase
+     assertTrue( IOUtils.contentEquals( new FileReader(      file ), stream.getReader() ) );
+   }
+   
+-
++/* Disabled for Debian build because this test needs network access
+   public void testURLStream() throws IOException 
+   {
+     String content = null;
+@@ -87,4 +87,5 @@ public class ContentStreamTest extends TestCase
+     stream = new ContentStreamBase.URLStream( url );
+     assertTrue( IOUtils.contentEquals( new StringReader( content ), stream.getReader() ) );
+   }
++*/
+ }
+diff --git a/src/test/org/apache/solr/servlet/SolrRequestParserTest.java b/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
+index ad9bc47..e4d20fe 100644
+--- a/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
++++ b/src/test/org/apache/solr/servlet/SolrRequestParserTest.java
+@@ -95,7 +95,7 @@ public class SolrRequestParserTest extends AbstractSolrTestCase {
+     }
+   }
+   
+-
++/* Disabled for Debian builds because this test needs network access
+   public void testStreamURL() throws Exception
+   {
+     boolean ok = false;
+@@ -121,7 +121,7 @@ public class SolrRequestParserTest extends AbstractSolrTestCase {
+     assertEquals( 1, streams.size() );
+     assertEquals( txt, IOUtils.toString( streams.get(0).getStream() ) );
+   }
+-  
++*/ 
+   public void testUrlParamParsing()
+   {
+     String[][] teststr = new String[][] {
+diff --git a/src/test/org/apache/solr/update/AutoCommitTest.java b/src/test/org/apache/solr/update/AutoCommitTest.java
+index dedcedd..438c1a6 100644
+--- a/src/test/org/apache/solr/update/AutoCommitTest.java
++++ b/src/test/org/apache/solr/update/AutoCommitTest.java
+@@ -98,6 +98,8 @@ public class AutoCommitTest extends AbstractSolrTestCase {
+ 
+   /* This test is causing too many failures on one of the build slaves.
+      Temporarily disabled. -Mike Klaas */
++/* Commented out for Debian builds. Apparently some of the buildd's try to
++ * perform this test anyway (and break)
+   public void XXXtestMaxDocs() throws Exception {
+ 
+     SolrCore core = h.getCore();
+@@ -144,7 +146,7 @@ public class AutoCommitTest extends AbstractSolrTestCase {
+     assertEquals( 1, tracker.getCommitCount());
+     
+   }
+-
++*/
+   public void testMaxTime() throws Exception {
+     SolrCore core = h.getCore();
+     CommitListener trigger = new CommitListener(core);    
+-- 
+tg: (0ec0e86..) debian/disable-tests-that-break-on-buildd (depends on: upstream)

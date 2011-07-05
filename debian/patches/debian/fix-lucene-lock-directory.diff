@@ -1,0 +1,28 @@
+From: Jan-Pascal van Best <janpascal@vanbest.org>
+Subject: [PATCH] debian/fix-lucene-lock-directory
+
+Fix FilePermission security exceptions because the default lucene
+lock dir is the system temp dir, which under Tomcat is
+/var/lib/tomcat5.5/temp. Move it to the dataDir (/var/lib/solr/data)
+instead.
+
+Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
+
+---
+ src/java/org/apache/solr/core/SolrCore.java |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/src/java/org/apache/solr/core/SolrCore.java b/src/java/org/apache/solr/core/SolrCore.java
+index 83570b2..95a1d45 100644
+--- a/src/java/org/apache/solr/core/SolrCore.java
++++ b/src/java/org/apache/solr/core/SolrCore.java
+@@ -360,6 +360,7 @@ public final class SolrCore implements SolrInfoMBean {
+ 
+   void initIndex() {
+     try {
++      System.setProperty( "org.apache.lucene.lockDir", dataDir );
+       File dirFile = new File(getNewIndexDir());
+       boolean indexExists = dirFile.canRead();
+       boolean firstTime;
+-- 
+tg: (0ec0e86..) debian/fix-lucene-lock-directory (depends on: upstream)

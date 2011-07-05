@@ -1,0 +1,40 @@
+From: Thomas Koch <thomas.koch@ymc.ch>
+Subject: [PATCH] debian/fix-syntax-error-in-shell-script
+
+<patch description>
+
+Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
+
+---
+ example/solr/bin/abo |    2 +-
+ src/scripts/abo      |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/example/solr/bin/abo b/example/solr/bin/abo
+index a42f7c4..9e3e599 100755
+--- a/example/solr/bin/abo
++++ b/example/solr/bin/abo
+@@ -175,7 +175,7 @@ trap 'echo cleaning up, please wait ...;/bin/rm -rf ${data_dir}/${name} ${data_d
+ 
+ # make a backup using hard links into temporary location
+ # then move it into place atomically
+-if [[ "${OS}" == "SunOS" || "${OS}" == "Darwin"  || "${OS}" == "FreeBSD"]]
++if [[ "${OS}" == "SunOS" || "${OS}" == "Darwin"  || "${OS}" == "FreeBSD" ]]
+ then
+   orig_dir=$(pwd)
+   mkdir ${data_dir}/${temp}
+diff --git a/src/scripts/abo b/src/scripts/abo
+index a42f7c4..9e3e599 100755
+--- a/src/scripts/abo
++++ b/src/scripts/abo
+@@ -175,7 +175,7 @@ trap 'echo cleaning up, please wait ...;/bin/rm -rf ${data_dir}/${name} ${data_d
+ 
+ # make a backup using hard links into temporary location
+ # then move it into place atomically
+-if [[ "${OS}" == "SunOS" || "${OS}" == "Darwin"  || "${OS}" == "FreeBSD"]]
++if [[ "${OS}" == "SunOS" || "${OS}" == "Darwin"  || "${OS}" == "FreeBSD" ]]
+ then
+   orig_dir=$(pwd)
+   mkdir ${data_dir}/${temp}
+-- 
+tg: (a1b411f..) debian/fix-syntax-error-in-shell-script (depends on: upstream)

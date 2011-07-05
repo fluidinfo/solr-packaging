@@ -1,0 +1,113 @@
+From: Jan-Pascal van Best <janpascal@vanbest.org>
+Subject: [PATCH] fixes/remove-dependency-on-javanet-staxutils-SOLR-851
+
+Remove dependency on javanet staxutils.
+See upstream issue SOLR-851
+
+Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
+
+---
+ .../solr/handler/AnalysisRequestHandler.java       |    5 +++--
+ .../solr/handler/XmlUpdateRequestHandler.java      |    4 ++--
+ .../solr/handler/AnalysisRequestHandlerTest.java   |    6 +++---
+ .../solr/handler/XmlUpdateRequestHandlerTest.java  |    4 ++--
+ 4 files changed, 10 insertions(+), 9 deletions(-)
+
+diff --git a/src/java/org/apache/solr/handler/AnalysisRequestHandler.java b/src/java/org/apache/solr/handler/AnalysisRequestHandler.java
+index 6de3248..2d5665b 100644
+--- a/src/java/org/apache/solr/handler/AnalysisRequestHandler.java
++++ b/src/java/org/apache/solr/handler/AnalysisRequestHandler.java
+@@ -16,7 +16,7 @@ package org.apache.solr.handler;
+  * limitations under the License.
+  */
+ 
+-import javanet.staxutils.BaseXMLInputFactory;
++//import javanet.staxutils.BaseXMLInputFactory;
+ import org.apache.commons.io.IOUtils;
+ import org.apache.lucene.analysis.Analyzer;
+ import org.apache.lucene.analysis.Token;
+@@ -59,7 +59,8 @@ public class AnalysisRequestHandler extends RequestHandlerBase {
+   public void init(NamedList args) {
+     super.init(args);
+ 
+-    inputFactory = BaseXMLInputFactory.newInstance();
++    // inputFactory = BaseXMLInputFactory.newInstance();
++    inputFactory = XMLInputFactory.newInstance();
+     try {
+       // The java 1.6 bundled stax parser (sjsxp) does not currently have a thread-safe
+       // XMLInputFactory, as that implementation tries to cache and reuse the
+diff --git a/src/java/org/apache/solr/handler/XmlUpdateRequestHandler.java b/src/java/org/apache/solr/handler/XmlUpdateRequestHandler.java
+index 0a8684a..795cc96 100644
+--- a/src/java/org/apache/solr/handler/XmlUpdateRequestHandler.java
++++ b/src/java/org/apache/solr/handler/XmlUpdateRequestHandler.java
+@@ -24,7 +24,7 @@ import java.io.File;
+ import java.util.HashMap;
+ import java.util.logging.Logger;
+ 
+-import javanet.staxutils.BaseXMLInputFactory;
++//import javanet.staxutils.BaseXMLInputFactory;
+ 
+ import javax.xml.stream.FactoryConfigurationError;
+ import javax.xml.stream.XMLInputFactory;
+@@ -83,7 +83,7 @@ public class XmlUpdateRequestHandler extends RequestHandlerBase
+   {
+     super.init(args);
+     
+-    inputFactory = BaseXMLInputFactory.newInstance();
++    inputFactory = XMLInputFactory.newInstance();
+     try {
+       // The java 1.6 bundled stax parser (sjsxp) does not currently have a thread-safe
+       // XMLInputFactory, as that implementation tries to cache and reuse the
+diff --git a/src/test/org/apache/solr/handler/AnalysisRequestHandlerTest.java b/src/test/org/apache/solr/handler/AnalysisRequestHandlerTest.java
+index 3d37478..85f5896 100644
+--- a/src/test/org/apache/solr/handler/AnalysisRequestHandlerTest.java
++++ b/src/test/org/apache/solr/handler/AnalysisRequestHandlerTest.java
+@@ -16,7 +16,7 @@ package org.apache.solr.handler;
+  * limitations under the License.
+  */
+ 
+-import javanet.staxutils.BaseXMLInputFactory;
++//import javanet.staxutils.BaseXMLInputFactory;
+ import org.apache.lucene.analysis.Token;
+ import org.apache.solr.common.util.NamedList;
+ import org.apache.solr.util.AbstractSolrTestCase;
+@@ -27,7 +27,7 @@ import java.io.StringReader;
+ import java.util.List;
+ 
+ public class AnalysisRequestHandlerTest extends AbstractSolrTestCase {
+-  private XMLInputFactory inputFactory = BaseXMLInputFactory.newInstance();
++  private XMLInputFactory inputFactory = XMLInputFactory.newInstance();
+ 
+   @Override
+   public String getSchemaFile() {
+@@ -102,4 +102,4 @@ public class AnalysisRequestHandlerTest extends AbstractSolrTestCase {
+       assertTrue(value + " is not equal to " + gold[j], value.equals(gold[j]) == true);
+     }
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/src/test/org/apache/solr/handler/XmlUpdateRequestHandlerTest.java b/src/test/org/apache/solr/handler/XmlUpdateRequestHandlerTest.java
+index cb8df26..9291ebd 100644
+--- a/src/test/org/apache/solr/handler/XmlUpdateRequestHandlerTest.java
++++ b/src/test/org/apache/solr/handler/XmlUpdateRequestHandlerTest.java
+@@ -4,7 +4,7 @@ import org.apache.solr.util.AbstractSolrTestCase;
+ import java.io.StringReader;
+ import java.util.Collection;
+ 
+-import javanet.staxutils.BaseXMLInputFactory;
++// import javanet.staxutils.BaseXMLInputFactory;
+ 
+ import javax.xml.stream.XMLInputFactory;
+ import javax.xml.stream.XMLStreamReader;
+@@ -15,7 +15,7 @@ import org.apache.solr.common.SolrInputDocument;
+ 
+ public class XmlUpdateRequestHandlerTest extends AbstractSolrTestCase 
+ {
+-  private XMLInputFactory inputFactory = BaseXMLInputFactory.newInstance();
++  private XMLInputFactory inputFactory = XMLInputFactory.newInstance();
+   protected XmlUpdateRequestHandler handler;
+ 
+ @Override public String getSchemaFile() { return "schema.xml"; }
+-- 
+tg: (a1b411f..) fixes/remove-dependency-on-javanet-staxutils-SOLR-851 (depends on: upstream)

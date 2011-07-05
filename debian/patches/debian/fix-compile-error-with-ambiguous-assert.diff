@@ -1,0 +1,25 @@
+From: Jan-Pascal van Best <janpascal@vanbest.org>
+Subject: [PATCH] debian/fix-compile-error-with-ambiguous-assert
+
+
+Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
+
+---
+ .../handler/dataimport/TestSqlEntityProcessor.java |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/contrib/dataimporthandler/src/test/java/org/apache/solr/handler/dataimport/TestSqlEntityProcessor.java b/contrib/dataimporthandler/src/test/java/org/apache/solr/handler/dataimport/TestSqlEntityProcessor.java
+index d9d776a..56da459 100644
+--- a/contrib/dataimporthandler/src/test/java/org/apache/solr/handler/dataimport/TestSqlEntityProcessor.java
++++ b/contrib/dataimporthandler/src/test/java/org/apache/solr/handler/dataimport/TestSqlEntityProcessor.java
+@@ -122,7 +122,7 @@ public class TestSqlEntityProcessor {
+         break;
+       count++;
+     }
+-    Assert.assertEquals(2, local.get());
++    Assert.assertEquals(2, (long)local.get());
+     Assert.assertEquals(4, count);
+   }
+ 
+-- 
+tg: (a1b411f..) debian/fix-compile-error-with-ambiguous-assert (depends on: upstream)

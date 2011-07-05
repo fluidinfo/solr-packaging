@@ -1,0 +1,26 @@
+From: Jan-Pascal van Best <janpascal@vanbest.org>
+Subject: [PATCH] fixes/fix-failed-SolrInfoMBeanTest
+
+See upstream issue SOLR-1253
+
+Signed-off-by: Thomas Koch <thomas.koch@ymc.ch>
+
+---
+ src/test/org/apache/solr/SolrInfoMBeanTest.java |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/test/org/apache/solr/SolrInfoMBeanTest.java b/src/test/org/apache/solr/SolrInfoMBeanTest.java
+index 4afaae8..ed76973 100644
+--- a/src/test/org/apache/solr/SolrInfoMBeanTest.java
++++ b/src/test/org/apache/solr/SolrInfoMBeanTest.java
+@@ -81,7 +81,7 @@ public class SolrInfoMBeanTest extends TestCase
+     String path = pckgname.replace('.', '/');
+     Enumeration<URL> resources = cld.getResources(path);
+     while (resources.hasMoreElements()) {
+-      directories.add(new File(URLDecoder.decode(resources.nextElement().getPath(), "UTF-8")));
++      directories.add(new File(resources.nextElement().getPath()));
+     }
+       
+     ArrayList<Class> classes = new ArrayList<Class>();
+-- 
+tg: (a1b411f..) fixes/fix-failed-SolrInfoMBeanTest (depends on: upstream)
