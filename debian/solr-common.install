@@ -1,6 +1,6 @@
-src/webapp/web/WEB-INF/web.xml /etc/solr/
-src/scripts /usr/share/solr
-example/solr/conf /etc/solr
-dist/*.jar /usr/share/solr/WEB-INF/lib/
-src/webapp/web/* /usr/share/solr/
-build/web/* /usr/share/solr/
+solr/src/webapp/web/WEB-INF/web.xml /etc/solr/
+solr/src/scripts /usr/share/solr
+solr/example/solr/conf /etc/solr
+solr/dist/*.jar /usr/share/solr/WEB-INF/lib/
+solr/src/webapp/web/* /usr/share/solr/
+solr/build/web/* /usr/share/solr/
