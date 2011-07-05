@@ -1,7 +1,7 @@
-Index: apache-solr-3.3.0/solr/build.xml
+Index: solr-packaging/solr/build.xml
 ===================================================================
---- apache-solr-3.3.0.orig/solr/build.xml	2011-07-05 11:27:40.882148181 +0200
-+++ apache-solr-3.3.0/solr/build.xml	2011-07-05 11:27:47.189648384 +0200
+--- solr-packaging.orig/solr/build.xml	2011-07-05 16:09:00.279789937 +0200
++++ solr-packaging/solr/build.xml	2011-07-05 16:47:40.546806421 +0200
 @@ -24,7 +24,7 @@
    <import file="common-build.xml"/>
    
@@ -11,11 +11,10 @@ Index: apache-solr-3.3.0/solr/build.xml
  
    <!-- solr source files -->
    <property name="src" location="src" />
-@@ -90,7 +90,23 @@
-   <!-- The compilation classpath -->
+@@ -91,6 +91,25 @@
    <path id="compile.classpath">
      <fileset dir="${lib}">
--      <include name="*.jar" />
+       <include name="*.jar" />
 +      <include name="commons-codec.jar" />
 +      <include name="commons-csv.jar" />
 +      <include name="commons-fileupload.jar" />
@@ -31,12 +30,14 @@ Index: apache-solr-3.3.0/solr/build.xml
 +      <include name="lucene-spellchecker.jar" />
 +      <include name="servlet-api-2.5.jar" />
 +      <include name="slf4j-api.jar" />
++      <include name="velocity-tools-view-2.0.jar" />
++      <include name="velocity-tools-generic-2.0.jar" />
 +      <include name="xml-apis-ext.jar" />
 +      <include name="xml-apis.jar" />
      </fileset>
      <path refid="lucene.classpath"/>
    </path>
-@@ -112,9 +128,9 @@
+@@ -112,9 +131,9 @@
      <path refid="compile.classpath" />
      <pathelement location="${dest}/solrj"/>
      <!-- jetty -->
@@ -48,7 +49,7 @@ Index: apache-solr-3.3.0/solr/build.xml
    </path>
      
    <!-- Compile the project. -->
-@@ -358,6 +374,13 @@
+@@ -358,6 +377,13 @@
      <path refid="compile.classpath.solrj" />
      <pathelement location="${common-solr.dir}/../lucene/build/classes/test-framework" />  <!-- include some lucene test code -->
      <pathelement path="${java.class.path}"/>
@@ -62,10 +63,10 @@ Index: apache-solr-3.3.0/solr/build.xml
    </path>
  
    <target name="compileTestFramework" depends="compile,compile-solrj">
-Index: apache-solr-3.3.0/solr/common-build.xml
+Index: solr-packaging/solr/common-build.xml
 ===================================================================
---- apache-solr-3.3.0.orig/solr/common-build.xml	2011-07-05 11:26:45.458149754 +0200
-+++ apache-solr-3.3.0/solr/common-build.xml	2011-07-05 11:27:47.194149429 +0200
+--- solr-packaging.orig/solr/common-build.xml	2011-07-05 16:09:00.319789017 +0200
++++ solr-packaging/solr/common-build.xml	2011-07-05 16:11:11.562800272 +0200
 @@ -333,7 +333,9 @@
          <property name="lucene-compiled" value="${lucene.compiled}"/>
          <fileset dir="."
@@ -76,10 +77,10 @@ Index: apache-solr-3.3.0/solr/common-build.xml
        </subant>
      </sequential>
    </macrodef>
-Index: apache-solr-3.3.0/solr/contrib/dataimporthandler/build.xml
+Index: solr-packaging/solr/contrib/dataimporthandler/build.xml
 ===================================================================
---- apache-solr-3.3.0.orig/solr/contrib/dataimporthandler/build.xml	2011-07-05 11:26:54.601650786 +0200
-+++ apache-solr-3.3.0/solr/contrib/dataimporthandler/build.xml	2011-07-05 11:27:47.194149429 +0200
+--- solr-packaging.orig/solr/contrib/dataimporthandler/build.xml	2011-07-05 16:09:00.471789698 +0200
++++ solr-packaging/solr/contrib/dataimporthandler/build.xml	2011-07-05 16:11:11.562800272 +0200
 @@ -36,7 +36,13 @@
    <path id="common.classpath">
    	<pathelement location="${solr-path}/build/solr" />
