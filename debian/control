@@ -25,7 +25,7 @@ Build-Depends: cdbs, debhelper (>= 7.4.10), po-debconf,
  libgnumail-java,
  junit4,
  libjmock-java
-Build-Conflicts: liblucene2-java (<< 3.3)
+#Build-Conflicts: liblucene2-java (<< 3.3)
 
 Package: solr-common
 Architecture: all
@@ -33,7 +33,7 @@ Depends: ${misc:Depends},
  debconf (>= 1.5),
  openjdk-6-jre-headless | java5-runtime-headless | java6-runtime-headless,
  libcommons-codec-java (>= 1.4),
- libcommons-csv-java (>= 0.1-SNAPSHOT+svn678580),
+ libcommons-csv-java (>= 0.1-SNAPSHOT+svn1065950),
  libcommons-fileupload-java (>= 1.2.1),
  libcommons-httpclient-java (>= 3.1),
  libcommons-io-java (>= 1.4),
