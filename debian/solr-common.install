@@ -4,3 +4,4 @@ solr/example/solr/conf /etc/solr
 solr/dist/*.jar /usr/share/solr/WEB-INF/lib/
 solr/src/webapp/web/* /usr/share/solr/
 solr/build/web/* /usr/share/solr/
+solr/lucene-libs/*.jar /usr/share/solr/WEB-INF/lib/
