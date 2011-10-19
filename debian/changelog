@@ -1,3 +1,9 @@
+solr (3.4.0-0~ppa1~lucid1) lucid; urgency=low
+
+  * New upstream release (3.4.0)
+
+ -- Esteve Fernandez <esteve@fluidinfo.com>  Wed, 19 Oct 2011 11:20:21 +0200
+
 solr (3.3-0~ppa1~lucid1) lucid; urgency=low
 
   * New upstream release (3.3)
