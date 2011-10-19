@@ -16,7 +16,7 @@ JAVA_HOME = /usr/lib/jvm/default-java
 DEB_ANT_BUILD_TARGET = dist-solrj dist-jar dist-contrib compile make-manifest lucene-jars-to-solr
 DEB_ANT_BUILDFILE = solr/build.xml
 #DEB_ANT_CHECK_TARGET = test
-DEB_JARS = ant-junit junit4
+DEB_JARS = ant-junit junit4 ant-nodeps
 
 DEB_INSTALL_CHANGELOGS_solr-common := solr/CHANGES.txt
 
