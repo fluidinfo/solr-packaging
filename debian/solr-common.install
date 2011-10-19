@@ -1,4 +1,4 @@
-solr/src/webapp/web/WEB-INF/web.xml /etc/solr/
+solr/webapp/web/WEB-INF/web.xml /etc/solr/
 solr/src/scripts /usr/share/solr
 solr/example/solr/conf /etc/solr
 solr/dist/*.jar /usr/share/solr/WEB-INF/lib/
