@@ -1,13 +1,14 @@
 Index: solr-packaging/solr/common-build.xml
 ===================================================================
---- solr-packaging.orig/solr/common-build.xml	2011-10-19 11:43:10.000000000 +0200
-+++ solr-packaging/solr/common-build.xml	2011-10-19 13:00:46.725727196 +0200
-@@ -55,9 +55,29 @@
+--- solr-packaging.orig/solr/common-build.xml	2011-10-19 13:17:25.002234628 +0200
++++ solr-packaging/solr/common-build.xml	2011-10-19 13:18:05.977731763 +0200
+@@ -55,9 +55,30 @@
    </condition>
  
    <path id="additional.dependencies">
 -  	<fileset dir="${common-solr.dir}/lib" includes="**/*.jar"/>
 +    <fileset dir="/usr/share/java">
++      <include name="ant-nodeps.jar" />
 +      <include name="commons-codec.jar" />
 +      <include name="commons-collections.jar" />
 +      <include name="commons-csv.jar" />
