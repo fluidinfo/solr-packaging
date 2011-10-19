@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.FieldInfo.IndexOptions;
 import org.apache.lucene.index.IndexReader.FieldOption;
 import org.apache.lucene.index.MergePolicy.MergeAbortedException;
 import org.apache.lucene.index.PayloadProcessorProvider.PayloadProcessor;
@@ -142,12 +143,12 @@ final class SegmentMerger {
   private static void addIndexed(IndexReader reader, FieldInfos fInfos,
       Collection<String> names, boolean storeTermVectors,
       boolean storePositionWithTermVector, boolean storeOffsetWithTermVector,
-      boolean storePayloads, boolean omitTFAndPositions)
+      boolean storePayloads, IndexOptions indexOptions)
       throws IOException {
     for (String field : names) {
       fInfos.add(field, true, storeTermVectors,
           storePositionWithTermVector, storeOffsetWithTermVector, !reader
-              .hasNorms(field), storePayloads, omitTFAndPositions);
+              .hasNorms(field), storePayloads, indexOptions);
     }
   }
 
@@ -210,13 +211,14 @@ final class SegmentMerger {
           fieldInfos.add(readerFieldInfos.fieldInfo(j));
         }
       } else {
-        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR_WITH_POSITION_OFFSET), true, true, true, false, false);
-        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR_WITH_POSITION), true, true, false, false, false);
-        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR_WITH_OFFSET), true, false, true, false, false);
-        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR), true, false, false, false, false);
-        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.OMIT_TERM_FREQ_AND_POSITIONS), false, false, false, false, true);
-        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.STORES_PAYLOADS), false, false, false, true, false);
-        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.INDEXED), false, false, false, false, false);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR_WITH_POSITION_OFFSET), true, true, true, false, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR_WITH_POSITION), true, true, false, false, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR_WITH_OFFSET), true, false, true, false, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.TERMVECTOR), true, false, false, false, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.OMIT_POSITIONS), false, false, false, false, IndexOptions.DOCS_AND_FREQS);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.OMIT_TERM_FREQ_AND_POSITIONS), false, false, false, false, IndexOptions.DOCS_ONLY);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.STORES_PAYLOADS), false, false, false, true, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        addIndexed(reader, fieldInfos, reader.getFieldNames(FieldOption.INDEXED), false, false, false, false, IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
         fieldInfos.add(reader.getFieldNames(FieldOption.UNINDEXED), false);
       }
     }
@@ -478,7 +480,7 @@ final class SegmentMerger {
     }
   }
 
-  boolean omitTermFreqAndPositions;
+  IndexOptions indexOptions;
 
   private final void mergeTermInfos(final FormatPostingsFieldsConsumer consumer) throws CorruptIndexException, IOException {
     int base = 0;
@@ -494,10 +496,8 @@ final class SegmentMerger {
       if (docMap != null) {
         if (docMaps == null) {
           docMaps = new int[readerCount][];
-          delCounts = new int[readerCount];
         }
         docMaps[i] = docMap;
-        delCounts[i] = smi.reader.maxDoc() - smi.reader.numDocs();
       }
       
       base += reader.numDocs();
@@ -532,7 +532,7 @@ final class SegmentMerger {
           termsConsumer.finish();
         final FieldInfo fieldInfo = fieldInfos.fieldInfo(currentField);
         termsConsumer = consumer.addField(fieldInfo);
-        omitTermFreqAndPositions = fieldInfo.omitTermFreqAndPositions;
+        indexOptions = fieldInfo.indexOptions;
       }
 
       int df = appendPostings(termsConsumer, match, matchSize);		  // add new TermInfo
@@ -550,13 +550,6 @@ final class SegmentMerger {
 
   private byte[] payloadBuffer;
   private int[][] docMaps;
-  int[][] getDocMaps() {
-    return docMaps;
-  }
-  private int[] delCounts;
-  int[] getDelCounts() {
-    return delCounts;
-  }
 
   /** Process postings from multiple segments all positioned on the
    *  same term. Writes out merged entries into freqOutput and
@@ -585,6 +578,7 @@ final class SegmentMerger {
       if (smi.dirPayloadProcessor != null) {
         payloadProcessor = smi.dirPayloadProcessor.getProcessor(smi.term);
       }
+
       while (postings.next()) {
         df++;
         int doc = postings.doc();
@@ -595,7 +589,7 @@ final class SegmentMerger {
         final int freq = postings.freq();
         final FormatPostingsPositionsConsumer posConsumer = docConsumer.addDoc(doc, freq);
 
-        if (!omitTermFreqAndPositions) {
+        if (indexOptions == IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) {
           for (int j = 0; j < freq; j++) {
             final int position = postings.nextPosition();
             int payloadLength = postings.getPayloadLength();
@@ -667,7 +661,11 @@ final class SegmentMerger {
       }
       success = true;
     } finally {
-      IOUtils.closeSafely(!success, output);
+      if (success) {
+        IOUtils.close(output);
+      } else {
+        IOUtils.closeWhileHandlingException(output);
+      }
     }
   }
 

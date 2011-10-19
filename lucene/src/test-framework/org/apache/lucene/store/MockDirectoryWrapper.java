@@ -163,7 +163,10 @@ public class MockDirectoryWrapper extends Directory {
   
   @Override
   public String toString() {
-    maybeYield();
+    // NOTE: do not maybeYield here, since it consumes
+    // randomness and can thus (unexpectedly during
+    // debugging) change the behavior of a seed
+    // maybeYield();
     return "MockDirWrapper(" + delegate + ")";
   }
 
@@ -398,7 +401,7 @@ public class MockDirectoryWrapper extends Directory {
     }
   }
 
-  private void addFileHandle(Closeable c, String name, boolean input) {
+  synchronized void addFileHandle(Closeable c, String name, boolean input) {
     Integer v = openFiles.get(name);
     if (v != null) {
       v = Integer.valueOf(v.intValue()+1);
@@ -483,7 +486,7 @@ public class MockDirectoryWrapper extends Directory {
     delegate.close();
   }
 
-  private synchronized void removeOpenFile(Closeable c, String name) {
+  synchronized void removeOpenFile(Closeable c, String name) {
     Integer v = openFiles.get(name);
     // Could be null when crash() was called
     if (v != null) {

@@ -30,12 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.MockAnalyzer;
-import org.apache.lucene.analysis.MockFixedLengthPayloadFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
@@ -66,7 +64,6 @@ import org.apache.lucene.store.NoLockFactory;
 import org.apache.lucene.store.MockDirectoryWrapper;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.store.SingleInstanceLockFactory;
-import org.apache.lucene.util.UnicodeUtil;
 import org.apache.lucene.util._TestUtil;
 import org.apache.lucene.util.ThreadInterruptedException;
 
@@ -156,46 +153,6 @@ public class TestIndexWriter extends LuceneTestCase {
 
       if (!Arrays.equals(startFiles, endFiles)) {
         fail(message + ": before delete:\n    " + arrayToString(startFiles) + "\n  after delete:\n    " + arrayToString(endFiles));
-      }
-    }
-
-    static final class StringSplitAnalyzer extends Analyzer {
-      @Override
-      public TokenStream tokenStream(String fieldName, Reader reader) {
-        return new StringSplitTokenizer(reader);
-      }
-    }
-
-    private static class StringSplitTokenizer extends Tokenizer {
-      private final String[] tokens;
-      private int upto = 0;
-      private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
-
-      public StringSplitTokenizer(Reader r) {
-        try {
-          final StringBuilder b = new StringBuilder();
-          final char[] buffer = new char[1024];
-          int n;
-          while((n = r.read(buffer)) != -1) {
-            b.append(buffer, 0, n);
-          }
-          tokens = b.toString().split(" ");
-        } catch (IOException ioe) {
-          throw new RuntimeException(ioe);
-        }
-      }
-
-      @Override
-      public final boolean incrementToken() throws IOException {
-        clearAttributes();      
-        if (upto < tokens.length) {
-          termAtt.setEmpty();
-          termAtt.append(tokens[upto]);
-          upto++;
-          return true;
-        } else {
-          return false;
-        }
       }
     }
 
@@ -1363,6 +1320,7 @@ public class TestIndexWriter extends LuceneTestCase {
             IndexWriterConfig conf = newIndexWriterConfig( 
                                                           TEST_VERSION_CURRENT, new MockAnalyzer(random)).setMaxBufferedDocs(2);
             w = new IndexWriter(dir, conf);
+            w.setInfoStream(VERBOSE ? System.out : null);
 
             Document doc = new Document();
             doc.add(newField("field", "some text contents", Field.Store.YES, Field.Index.ANALYZED));
@@ -1891,6 +1849,52 @@ public class TestIndexWriter extends LuceneTestCase {
     dir.close();
   }
 
+  static final class StringSplitAnalyzer extends Analyzer {
+    @Override
+    public TokenStream tokenStream(String fieldName, Reader reader) {
+      return new StringSplitTokenizer(reader);
+    }
+  }
+
+  private static class StringSplitTokenizer extends Tokenizer {
+    private String[] tokens;
+    private int upto;
+    private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
+
+    public StringSplitTokenizer(Reader r) {
+      try {
+        reset(r);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public final boolean incrementToken() throws IOException {
+      clearAttributes();      
+      if (upto < tokens.length) {
+        termAtt.setEmpty();
+        termAtt.append(tokens[upto]);
+        upto++;
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public void reset(Reader input) throws IOException {
+       this.upto = 0;
+       final StringBuilder b = new StringBuilder();
+       final char[] buffer = new char[1024];
+       int n;
+       while ((n = input.read(buffer)) != -1) {
+         b.append(buffer, 0, n);
+       }
+       this.tokens = b.toString().split(" ");
+    }
+  }
+
   // LUCENE-3183
   public void testEmptyFieldNameTIIOne() throws IOException {
     Directory dir = newDirectory();
@@ -1909,5 +1913,29 @@ public class TestIndexWriter extends LuceneTestCase {
     r.terms(new Term("", ""));
     r.close();
     dir.close();
+  }
+
+  public void testDeleteAllNRTLeftoverFiles() throws Exception {
+
+    Directory d = new MockDirectoryWrapper(random, new RAMDirectory());
+    IndexWriter w = new IndexWriter(d, new IndexWriterConfig(TEST_VERSION_CURRENT, new MockAnalyzer(random)));
+    Document doc = new Document();
+    for(int i = 0; i < 20; i++) {
+      for(int j = 0; j < 100; ++j) {
+        w.addDocument(doc);
+      }
+      w.commit();
+      IndexReader.open(w, true).close();
+
+      w.deleteAll();
+      w.commit();
+
+      // Make sure we accumulate no files except for empty
+      // segments_N and segments.gen:
+      assertTrue(d.listAll().length <= 2);
+    }
+
+    w.close();
+    d.close();
   }
 }

@@ -3,6 +3,111 @@ Lucene Change Log
 For more information on past and future Lucene versions, please see:
 http://s.apache.org/luceneversions
 
+======================= Lucene 3.4.0 =======================
+
+Bug fixes
+
+* LUCENE-3251: Directory#copy failed to close target output if opening the
+  source stream failed. (Simon Willnauer)
+
+* LUCENE-3255: If segments_N file is all zeros (due to file
+  corruption), don't read that to mean the index is empty.  (Gregory
+  Tarr, Mark Harwood, Simon Willnauer, Mike McCandless)
+
+* LUCENE-3254: Fixed minor bug in deletes were written to disk,
+  causing the file to sometimes be larger than it needed to be.  (Mike
+  McCandless)
+
+* LUCENE-3224: Fixed a big where CheckIndex would incorrectly report a
+  corrupt index if a term with docfreq >= 16 was indexed more than once
+  at the same position.  (Robert Muir)
+
+* LUCENE-3334: If Java7 is detected, IOUtils.closeSafely() will log
+  suppressed exceptions in the original exception, so stack trace
+  will contain them.  (Uwe Schindler)
+
+* LUCENE-3339: Fixed deadlock case when multiple threads use the new
+  block-add (IndexWriter.add/updateDocuments) methods.  (Robert Muir,
+  Mike McCandless)
+
+* LUCENE-3340: Fixed case where IndexWriter was not flushing at
+  exactly maxBufferedDeleteTerms (Mike McCandless)
+
+* LUCENE-3358, LUCENE-3361: StandardTokenizer and UAX29URLEmailTokenizer 
+  wrongly discarded combining marks attached to Han or Hiragana characters, 
+  this is fixed if you supply Version >= 3.4 If you supply a previous 
+  lucene version, you get the old buggy behavior for backwards compatibility.  
+  (Trejkaz, Robert Muir)
+  
+* LUCENE-3368: IndexWriter commits segments without applying their buffered
+  deletes when flushing concurrently. (Simon Willnauer, Mike McCandless)
+
+* LUCENE-3365: Create or Append mode determined before obtaining write lock
+  can cause IndexWriter overriding an existing index.
+  (Geoff Cooney via Simon Willnauer)
+
+* LUCENE-3380: Fixed a bug where FileSwitchDirectory's listAll() would wrongly
+  throw NoSuchDirectoryException when all files written so far have been
+  written to one directory, but the other still has not yet been created on the
+  filesystem.  (Robert Muir)
+
+* LUCENE-3402: term vectors disappeared from the index if optimize() was called
+  following addIndexes(). (Shai Erera)
+     
+* LUCENE-3409: IndexWriter.deleteAll was failing to close pooled NRT
+  SegmentReaders, leading to unused files accumulating in the
+  Directory.  (tal steier via Mike McCandless)
+     
+* LUCENE-3390: Added SortField.setMissingValue(v) to enable well defined
+  sorting behavior for documents that do not include the given field.
+  (Gilad Barkai via Doron Cohen)
+
+* LUCENE-3418: Lucene was failing to fsync index files on commit,
+  meaning an operating system or hardware crash, or power loss, could
+  easily corrupt the index.  (Mark Miller, Robert Muir, Mike
+  McCandless)
+  
+New Features
+
+* LUCENE-3290: Added FieldInvertState.numUniqueTerms 
+  (Mike McCandless, Robert Muir)
+
+* LUCENE-3280: Add FixedBitSet, like OpenBitSet but is not elastic
+  (grow on demand if you set/get/clear too-large indices).  (Mike
+  McCandless)
+
+* LUCENE-2048: Added the ability to omit positions but still index
+  term frequencies, you can now control what is indexed into
+  the postings via AbstractField.setIndexOptions:
+   DOCS_ONLY: only documents are indexed: term frequencies and positions are omitted
+   DOCS_AND_FREQS: only documents and term frequencies are indexed: positions are omitted
+   DOCS_AND_FREQS_AND_POSITIONS: full postings: documents, frequencies, and positions
+  AbstractField.setOmitTermFrequenciesAndPositions is deprecated,
+  you should use DOCS_ONLY instead.  (Robert Muir)
+
+* LUCENE-3097: Added a new grouping collector that can be used to retrieve all most relevant
+  documents per group. This can be useful in situations when one wants to compute grouping
+  based facets / statistics on the complete query result. (Martijn van Groningen)
+
+Optimizations
+  
+* LUCENE-3289: When building an FST you can now tune how aggressively
+  the FST should try to share common suffixes.  Typically you can
+  greatly reduce RAM required during building, and CPU consumed, at
+  the cost of a somewhat larger FST.  (Mike McCandless)
+
+Test Cases
+
+* LUCENE-3327: Fix AIOOBE when TestFSTs is run with
+  -Dtests.verbose=true (James Dyer via Mike McCandless)
+
+Build
+
+* LUCENE-3406: Add ant target 'package-local-src-tgz' to Lucene and Solr
+  to package sources from the local working copy.
+  (Seung-Yeoul Yang via Steve Rowe)
+
+
 ======================= Lucene 3.3.0 =======================
 
 Changes in backwards compatibility policy

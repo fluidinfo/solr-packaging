@@ -33,6 +33,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.document.FieldSelector;
 import org.apache.lucene.document.FieldSelectorResult;
+import org.apache.lucene.index.FieldInfo.IndexOptions;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.document.NumericField;
 import org.apache.lucene.search.FieldCache;
@@ -106,6 +107,8 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
                              "30.nocfs",
                              "31.cfs",
                              "31.nocfs",
+                             "32.cfs",
+                             "32.nocfs",
   };
   
   final String[] oldOptimizedNames = {"31.optimized.cfs",
@@ -480,11 +483,11 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
     File indexDir = new File(LuceneTestCase.TEMP_DIR, dirName);
     _TestUtil.rmDir(indexDir);
     Directory dir = newFSDirectory(indexDir);
-    IndexWriterConfig conf = new IndexWriterConfig(TEST_VERSION_CURRENT, new WhitespaceAnalyzer(TEST_VERSION_CURRENT)).setMaxBufferedDocs(10);
-    ((LogMergePolicy) conf.getMergePolicy()).setUseCompoundFile(doCFS);
-    if (doCFS) {
-      ((LogMergePolicy) conf.getMergePolicy()).setNoCFSRatio(1.0);
-    }
+    LogByteSizeMergePolicy mp = new LogByteSizeMergePolicy();
+    mp.setUseCompoundFile(doCFS);
+    mp.setNoCFSRatio(1.0);
+    IndexWriterConfig conf = new IndexWriterConfig(TEST_VERSION_CURRENT, new WhitespaceAnalyzer(TEST_VERSION_CURRENT))
+      .setMaxBufferedDocs(10).setMergePolicy(mp);
     IndexWriter writer = new IndexWriter(dir, conf);
     
     for(int i=0;i<35;i++) {
@@ -498,8 +501,11 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
 
     if (!optimized) {
       // open fresh writer so we get no prx file in the added segment
-      conf = new IndexWriterConfig(TEST_VERSION_CURRENT, new WhitespaceAnalyzer(TEST_VERSION_CURRENT)).setMaxBufferedDocs(10);
-      ((LogMergePolicy) conf.getMergePolicy()).setUseCompoundFile(doCFS);
+      mp = new LogByteSizeMergePolicy();
+      mp.setUseCompoundFile(doCFS);
+      mp.setNoCFSRatio(1.0);
+      conf = new IndexWriterConfig(TEST_VERSION_CURRENT, new WhitespaceAnalyzer(TEST_VERSION_CURRENT))
+        .setMaxBufferedDocs(10).setMergePolicy(mp);
       writer = new IndexWriter(dir, conf);
       addNoProxDoc(writer);
       writer.close();
@@ -628,10 +634,10 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
   private void addNoProxDoc(IndexWriter writer) throws IOException {
     Document doc = new Document();
     Field f = new Field("content3", "aaa", Field.Store.YES, Field.Index.ANALYZED);
-    f.setOmitTermFreqAndPositions(true);
+    f.setIndexOptions(IndexOptions.DOCS_ONLY);
     doc.add(f);
     f = new Field("content4", "aaa", Field.Store.YES, Field.Index.NO);
-    f.setOmitTermFreqAndPositions(true);
+    f.setIndexOptions(IndexOptions.DOCS_ONLY);
     doc.add(f);
     writer.addDocument(doc);
   }

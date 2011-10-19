@@ -39,7 +39,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
-import org.apache.lucene.util.UnicodeUtil;
 import org.apache.lucene.util._TestUtil;
 
 
@@ -341,7 +340,16 @@ public class TestPayloads extends LuceneTestCase {
     }
     
     private void generateRandomData(byte[] data) {
-        random.nextBytes(data);
+      // this test needs the random data to be valid unicode
+      String s = _TestUtil.randomFixedByteLengthUnicodeString(random, data.length);
+      byte b[];
+      try {
+        b = s.getBytes("UTF-8");
+      } catch (UnsupportedEncodingException e) {
+        throw new RuntimeException(e);
+      }
+      assert b.length == data.length;
+      System.arraycopy(b, 0, data, 0, b.length);
     }
 
     private byte[] generateRandomData(int n) {
@@ -432,7 +440,7 @@ public class TestPayloads extends LuceneTestCase {
         private byte[] data;
         private int length;
         private int offset;
-        Payload payload = new Payload();
+        private int startOffset;
         PayloadAttribute payloadAtt;
         
         public PayloadFilter(TokenStream in, byte[] data, int offset, int length) {
@@ -440,6 +448,7 @@ public class TestPayloads extends LuceneTestCase {
             this.data = data;
             this.length = length;
             this.offset = offset;
+            this.startOffset = offset;
             payloadAtt = addAttribute(PayloadAttribute.class);
         }
         
@@ -459,6 +468,12 @@ public class TestPayloads extends LuceneTestCase {
             
             return hasNext;
         }
+
+      @Override
+      public void reset() throws IOException {
+        super.reset();
+        this.offset = startOffset;
+      }
     }
     
     public void testThreadSafety() throws Exception {
@@ -503,7 +518,9 @@ public class TestPayloads extends LuceneTestCase {
                 int freq = tp.freq();
                 for (int i = 0; i < freq; i++) {
                     tp.nextPosition();
-                    assertEquals(pool.bytesToString(tp.getPayload(new byte[5], 0)), terms.term().text);
+                    byte payload[] = new byte[5];
+                    tp.getPayload(payload, 0);
+                    assertEquals(terms.term().text, new String(payload, 0, payload.length, "UTF-8"));
                 }
             }
             tp.close();
@@ -527,7 +544,11 @@ public class TestPayloads extends LuceneTestCase {
             this.pool = pool;
             payload = pool.get();
             generateRandomData(payload);
-            term = pool.bytesToString(payload);
+            try {
+              term = new String(payload, 0, payload.length, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+              throw new RuntimeException(e);
+            }
             first = true;
             payloadAtt = addAttribute(PayloadAttribute.class);
             termAtt = addAttribute(CharTermAttribute.class);
@@ -557,18 +578,6 @@ public class TestPayloads extends LuceneTestCase {
             pool = new ArrayList<byte[]>();
             for (int i = 0; i < capacity; i++) {
                 pool.add(new byte[size]);
-            }
-        }
-        
-        private UnicodeUtil.UTF8Result utf8Result = new UnicodeUtil.UTF8Result();
-
-        synchronized String bytesToString(byte[] bytes) {
-            String s = new String(bytes);
-            UnicodeUtil.UTF16toUTF8(s, 0, s.length(), utf8Result);
-            try {
-                return new String(utf8Result.result, 0, utf8Result.length, "UTF-8");
-            } catch (UnsupportedEncodingException uee) {
-                return null;
             }
         }
     

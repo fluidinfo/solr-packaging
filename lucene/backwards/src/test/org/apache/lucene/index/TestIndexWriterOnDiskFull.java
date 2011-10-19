@@ -114,7 +114,6 @@ public class TestIndexWriterOnDiskFull extends LuceneTestCase {
             
             // Make sure reader can open the index:
             IndexReader.open(dir, true).close();
-            _TestUtil.checkIndex(dir);
           }
             
           dir.close();
@@ -487,14 +486,13 @@ public class TestIndexWriterOnDiskFull extends LuceneTestCase {
       fail("fake disk full IOExceptions not hit");
     } catch (IOException ioe) {
       // expected
-      assertTrue(ftdm.didFail1);
+      assertTrue(ftdm.didFail1 || ftdm.didFail2);
     }
     _TestUtil.checkIndex(dir);
     ftdm.clearDoFail();
     w.addDocument(doc);
     w.close();
 
-    _TestUtil.checkIndex(dir);
     dir.close();
   }
   

@@ -204,7 +204,6 @@ public class TestIndexWriterExceptions extends LuceneTestCase {
     assertEquals(count, count2);
     r2.close();
 
-    _TestUtil.checkIndex(dir);
     dir.close();
   }
 
@@ -254,7 +253,6 @@ public class TestIndexWriterExceptions extends LuceneTestCase {
     assertEquals(count, count2);
     r2.close();
 
-    _TestUtil.checkIndex(dir);
     dir.close();
   }
   
@@ -316,7 +314,6 @@ public class TestIndexWriterExceptions extends LuceneTestCase {
       // expected
     }
     w.close();
-    _TestUtil.checkIndex(dir);
     dir.close();
   }
 
@@ -871,7 +868,8 @@ public class TestIndexWriterExceptions extends LuceneTestCase {
       addDoc(w);
     w.close();
 
-    for(int i=0;i<200;i++) {
+    int iter = TEST_NIGHTLY ? 200 : 20;
+    for(int i=0;i<iter;i++) {
       if (VERBOSE) {
         System.out.println("TEST: iter " + i);
       }
@@ -959,7 +957,6 @@ public class TestIndexWriterExceptions extends LuceneTestCase {
     dir.close();
   }
   
-  /* test removed because of backwards compatibility change
   // LUCENE-1044: Simulate checksum error in segments_N
   public void testSegmentsChecksumError() throws IOException {
     Directory dir = newDirectory();
@@ -998,7 +995,6 @@ public class TestIndexWriterExceptions extends LuceneTestCase {
     reader.close();
     dir.close();
   }
-  */
   
   // Simulate a corrupt index by removing last byte of
   // latest segments file and make sure we get an

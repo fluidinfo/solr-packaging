@@ -130,7 +130,13 @@ public class TestIndexWriterOnDiskFull extends LuceneTestCase {
       }
     }
   }
-  
+
+  // TODO: make @Nightly variant that provokes more disk
+  // fulls
+
+  // TODO: have test fail if on any given top
+  // iter there was not a single IOE hit
+
   /*
   Test: make sure when we run out of disk space or hit
   random IOExceptions in any of the addIndexes(*) calls
@@ -486,7 +492,7 @@ public class TestIndexWriterOnDiskFull extends LuceneTestCase {
       fail("fake disk full IOExceptions not hit");
     } catch (IOException ioe) {
       // expected
-      assertTrue(ftdm.didFail1);
+      assertTrue(ftdm.didFail1 || ftdm.didFail2);
     }
     _TestUtil.checkIndex(dir);
     ftdm.clearDoFail();

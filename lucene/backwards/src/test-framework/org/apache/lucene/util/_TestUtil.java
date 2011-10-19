@@ -27,9 +27,9 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.util.Enumeration;
-import java.util.Random;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -42,16 +42,24 @@ import org.apache.lucene.index.LogMergePolicy;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.MergeScheduler;
 import org.apache.lucene.index.TieredMergePolicy;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 
 public class _TestUtil {
 
-  /** Returns temp dir, containing String arg in its name;
+  /** Returns temp dir, based on String arg in its name;
    *  does not create the directory. */
   public static File getTempDir(String desc) {
-    File f = new File(LuceneTestCase.TEMP_DIR, desc + "." + LuceneTestCase.random.nextLong());
-    LuceneTestCase.registerTempFile(f);
-    return f;
+    try {
+      File f = createTempFile(desc, "tmp", LuceneTestCase.TEMP_DIR);
+      f.delete();
+      LuceneTestCase.registerTempFile(f);
+      return f;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -330,6 +338,7 @@ public class _TestUtil {
     } else if (mp instanceof TieredMergePolicy) {
       TieredMergePolicy tmp = (TieredMergePolicy) mp;
       tmp.setMaxMergeAtOnce(Math.min(5, tmp.getMaxMergeAtOnce()));
+      tmp.setSegmentsPerTier(Math.min(5, tmp.getSegmentsPerTier()));
     }
 
     MergeScheduler ms = w.getConfig().getMergeScheduler();
@@ -362,6 +371,73 @@ public class _TestUtil {
     } catch (Exception e) {
       // Should not happen?
       throw new RuntimeException(e);
+    }
+  }
+  
+  /** 
+   * insecure, fast version of File.createTempFile
+   * uses Random instead of SecureRandom.
+   */
+  public static File createTempFile(String prefix, String suffix, File directory)
+      throws IOException {
+    // Force a prefix null check first
+    if (prefix.length() < 3) {
+      throw new IllegalArgumentException("prefix must be 3");
+    }
+    String newSuffix = suffix == null ? ".tmp" : suffix;
+    File result;
+    do {
+      result = genTempFile(prefix, newSuffix, directory);
+    } while (!result.createNewFile());
+    return result;
+  }
+
+  /* Temp file counter */
+  private static int counter = 0;
+
+  /* identify for differnt VM processes */
+  private static int counterBase = 0;
+
+  private static class TempFileLocker {};
+  private static TempFileLocker tempFileLocker = new TempFileLocker();
+
+  private static File genTempFile(String prefix, String suffix, File directory) {
+    int identify = 0;
+
+    synchronized (tempFileLocker) {
+      if (counter == 0) {
+        int newInt = new Random().nextInt();
+        counter = ((newInt / 65535) & 0xFFFF) + 0x2710;
+        counterBase = counter;
+      }
+      identify = counter++;
+    }
+
+    StringBuilder newName = new StringBuilder();
+    newName.append(prefix);
+    newName.append(counterBase);
+    newName.append(identify);
+    newName.append(suffix);
+    return new File(directory, newName.toString());
+  }
+
+  public static void assertEquals(TopDocs expected, TopDocs actual) {
+    Assert.assertEquals("wrong total hits", expected.totalHits, actual.totalHits);
+    Assert.assertEquals("wrong maxScore", expected.getMaxScore(), actual.getMaxScore(), 0.0);
+    Assert.assertEquals("wrong hit count", expected.scoreDocs.length, actual.scoreDocs.length);
+    for(int hitIDX=0;hitIDX<expected.scoreDocs.length;hitIDX++) {
+      final ScoreDoc expectedSD = expected.scoreDocs[hitIDX];
+      final ScoreDoc actualSD = actual.scoreDocs[hitIDX];
+      Assert.assertEquals("wrong hit docID", expectedSD.doc, actualSD.doc);
+      Assert.assertEquals("wrong hit score", expectedSD.score, actualSD.score, 0.0);
+      if (expectedSD instanceof FieldDoc) {
+        Assert.assertTrue(actualSD instanceof FieldDoc);
+        Assert.assertEquals("wrong sort field values",
+                            ((FieldDoc) expectedSD).fields,
+                            ((FieldDoc) actualSD).fields);
+      } else {
+        Assert.assertFalse(actualSD instanceof FieldDoc);
+      }
     }
   }
 }

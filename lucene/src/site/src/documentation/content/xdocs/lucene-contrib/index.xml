@@ -65,6 +65,11 @@
                    <a href="../gettingstarted.html">Getting Started</a>.</p>
                 <p>See <a href="../api/contrib-demo/index.html">demo javadoc</a></p>
             </section>
+
+            <section id="facet"><title>facet</title>
+                <p>Provides faceted indexing and search capabilities</p>
+                <p>See <a href="../api/contrib-facet/index.html">facet javadoc</a></p>
+            </section>
             
             <section id="grouping"><title>grouping</title>
                 <p>Groups search results according to a specified field</p>
@@ -87,6 +92,11 @@
                 <p>See <a href="../api/contrib-instantiated/index.html">instantiated javadoc</a></p>
             </section>
             
+            <section id="join"><title>join</title>
+                <p>Enables joining of parent and child documents when indexed as a doc block</p>
+                <p>See <a href="../api/contrib-join/index.html">join javadoc</a></p>
+            </section>
+
             <section id="memory"><title>memory</title>
                 <p>High-performance single-document main memory index.</p>
                 <p>See <a href="../api/contrib-memory/index.html">memory javadoc</a></p>
@@ -122,14 +132,9 @@
                 <p>See <a href="../api/contrib-spellchecker/index.html">spellchecker javadoc</a></p>
             </section>                     
             
-            <section id="wordnet"><title>wordnet</title>
-                <p>Tools to help utilize wordnet synonyms with Lucene</p>
-                <p>See <a href="../api/contrib-wordnet/index.html">wordnet javadoc</a></p>
-            </section>  
-            
             <section id="xml-query-parser"><title>xml-query-parser</title>
                 <p>A QueryParser that can read queries written in an XML format.</p>
-                <p>See <a href="../api/contrib-wordnet/index.html">xml-query-parser javadoc</a></p>
+                <p>See <a href="../api/contrib-xml-query-parser/index.html">xml-query-parser javadoc</a></p>
             </section>  
            
 		</section>

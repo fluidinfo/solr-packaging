@@ -447,7 +447,7 @@ public class FSTLookup extends Lookup {
     final Outputs<Object> outputs = NoOutputs.getSingleton();
     final Object empty = outputs.getNoOutput();
     final Builder<Object> builder = 
-      new Builder<Object>(FST.INPUT_TYPE.BYTE4, 0, 0, true, outputs);
+      new Builder<Object>(FST.INPUT_TYPE.BYTE4, outputs);
     final IntsRef scratchIntsRef = new IntsRef(10);
     for (Entry e : entries) {
       final int termLength = scratchIntsRef.length = e.term.length;
@@ -512,7 +512,7 @@ public class FSTLookup extends Lookup {
       this.automaton = new FST<Object>(new InputStreamDataInput(is), NoOutputs.getSingleton());
       cacheRootArcs();
     } finally {
-      IOUtils.closeSafely(false, is);
+      IOUtils.close(is);
     }
     return true;
   }
@@ -534,7 +534,7 @@ public class FSTLookup extends Lookup {
     try {
       this.automaton.save(new OutputStreamDataOutput(os));
     } finally {
-      IOUtils.closeSafely(false, os);
+      IOUtils.close(os);
     }
 
     return true;

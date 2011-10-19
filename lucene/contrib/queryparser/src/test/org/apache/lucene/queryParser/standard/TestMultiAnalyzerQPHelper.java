@@ -17,6 +17,7 @@ package org.apache.lucene.queryParser.standard;
  * limitations under the License.
  */
 
+import java.io.IOException;
 import java.io.Reader;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -29,7 +30,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.queryParser.core.QueryNodeException;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute.Operator;
+import org.apache.lucene.queryParser.standard.config.StandardQueryConfigHandler;
 import org.apache.lucene.util.LuceneTestCase;
 
 /**
@@ -43,6 +44,7 @@ public class TestMultiAnalyzerQPHelper extends LuceneTestCase {
 
   private static int multiToken = 0;
 
+  @SuppressWarnings("deprecation")
   public void testMultiAnalyzer() throws QueryNodeException {
 
     StandardQueryParser qp = new StandardQueryParser();
@@ -103,7 +105,7 @@ public class TestMultiAnalyzerQPHelper extends LuceneTestCase {
     qp.setDefaultPhraseSlop(0);
 
     // non-default operator:
-    qp.setDefaultOperator(Operator.AND);
+    qp.setDefaultOperator(StandardQueryConfigHandler.Operator.AND);
     assertEquals("+(multi multi2) +foo", qp.parse("multi foo", "").toString());
 
   }
@@ -185,7 +187,7 @@ public class TestMultiAnalyzerQPHelper extends LuceneTestCase {
         return true;
       } else {
         boolean next = input.incrementToken();
-        if (next == false) {
+        if (!next) {
           return false;
         }
         prevType = typeAtt.type();
@@ -204,6 +206,13 @@ public class TestMultiAnalyzerQPHelper extends LuceneTestCase {
       }
     }
 
+    @Override
+    public void reset() throws IOException {
+      super.reset();
+      this.prevType = null;
+      this.prevStartOffset = 0;
+      this.prevEndOffset = 0;
+    }
   }
 
   /**

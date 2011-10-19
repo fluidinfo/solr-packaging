@@ -25,8 +25,6 @@ import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
@@ -65,18 +63,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.TestWatchman;
-import org.junit.runner.Description;
 import org.junit.runner.RunWith;
-import org.junit.runner.manipulation.Filter;
-import org.junit.runner.manipulation.NoTestsRemainException;
-import org.junit.runner.notification.Failure;
-import org.junit.runner.notification.RunListener;
-import org.junit.runner.notification.RunNotifier;
-import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.InitializationError;
 
 /**
  * Base class for all Lucene unit tests, Junit3 or Junit4 variant.
@@ -105,7 +94,7 @@ import org.junit.runners.model.InitializationError;
  * @see #assertSaneFieldCaches(String)
  */
 
-@RunWith(LuceneTestCase.LuceneTestCaseRunner.class)
+@RunWith(LuceneTestCaseRunner.class)
 public abstract class LuceneTestCase extends Assert {
 
   /**
@@ -117,7 +106,7 @@ public abstract class LuceneTestCase extends Assert {
   /** Use this constant when creating Analyzers and any other version-dependent stuff.
    * <p><b>NOTE:</b> Change this when development starts for new Lucene version:
    */
-  public static final Version TEST_VERSION_CURRENT = Version.LUCENE_33;
+  public static final Version TEST_VERSION_CURRENT = Version.LUCENE_34;
 
   /**
    * If this is set, it is the only method that should run.
@@ -167,7 +156,7 @@ public abstract class LuceneTestCase extends Assert {
    */
   public static final int RANDOM_MULTIPLIER = Integer.parseInt(System.getProperty("tests.multiplier", "1"));
   
-  private int savedBoolMaxClauseCount;
+  private int savedBoolMaxClauseCount = BooleanQuery.getMaxClauseCount();
 
   private volatile Thread.UncaughtExceptionHandler savedUncaughtExceptionHandler = null;
   
@@ -199,36 +188,24 @@ public abstract class LuceneTestCase extends Assert {
   
   protected static Map<MockDirectoryWrapper,StackTraceElement[]> stores;
   
-  private static class TwoLongs {
-    public final long l1, l2;
-
-    public TwoLongs(long l1, long l2) {
-      this.l1 = l1;
-      this.l2 = l2;
-    }
-
-    @Override
-    public String toString() {
-      return l1 + ":" + l2;
-    }
-
-    public static TwoLongs fromString(String s) {
-      final int i = s.indexOf(':');
-      assert i != -1;
-      return new TwoLongs(Long.parseLong(s.substring(0, i)),
-                          Long.parseLong(s.substring(1+i)));
-    }
-  }
-
   /** @deprecated: until we fix no-fork problems in solr tests */
   @Deprecated
-  private static List<String> testClassesRun = new ArrayList<String>();
+  static List<String> testClassesRun = new ArrayList<String>();
   
+  private static void initRandom() {
+    assert !random.initialized;
+    staticSeed = "random".equals(TEST_SEED) ? seedRand.nextLong() : ThreeLongs.fromString(TEST_SEED).l1;
+    random.setSeed(staticSeed);
+    random.initialized = true;
+  }
+  
+  @Deprecated
+  private static boolean icuTested = false;
+
   @BeforeClass
   public static void beforeClassLuceneTestCaseJ4() {
+    initRandom();
     state = State.INITIAL;
-    staticSeed = "random".equals(TEST_SEED) ? seedRand.nextLong() : TwoLongs.fromString(TEST_SEED).l1;
-    random.setSeed(staticSeed);
     tempDirs.clear();
     stores = Collections.synchronizedMap(new IdentityHashMap<MockDirectoryWrapper,StackTraceElement[]>());
     // enable this by default, for IDE consistency with ant tests (as its the default from ant)
@@ -243,7 +220,23 @@ public abstract class LuceneTestCase extends Assert {
       random.nextInt(); // consume RandomCodecProvider's seed.
     }
     // end compatibility random-consumption
+    
     savedLocale = Locale.getDefault();
+    
+    // START hack to init ICU safely before we randomize locales.
+    // ICU fails during classloading when a special Java7-only locale is the default
+    // see: http://bugs.icu-project.org/trac/ticket/8734
+    if (!icuTested) {
+      icuTested = true;
+      try {
+        Locale.setDefault(Locale.US);
+        Class.forName("com.ibm.icu.util.ULocale");
+      } catch (ClassNotFoundException cnfe) {
+        // ignore if no ICU is in classpath
+      }
+    }
+    // END hack
+    
     locale = TEST_LOCALE.equals("random") ? randomLocale(random) : localeForName(TEST_LOCALE);
     Locale.setDefault(locale);
     savedTimeZone = TimeZone.getDefault();
@@ -254,11 +247,19 @@ public abstract class LuceneTestCase extends Assert {
   
   @AfterClass
   public static void afterClassLuceneTestCaseJ4() {
-    if (!testsFailed) {
-      assertTrue("ensure your setUp() calls super.setUp() and your tearDown() calls super.tearDown()!!!", 
-          state == State.INITIAL || state == State.TEARDOWN);
+    State oldState = state; // capture test execution state
+    state = State.INITIAL; // set the state for subsequent tests
+    
+    Throwable problem = null;
+    try {
+      if (!testsFailed) {
+        assertTrue("ensure your setUp() calls super.setUp() and your tearDown() calls super.tearDown()!!!", 
+          oldState == State.INITIAL || oldState == State.TEARDOWN);
+      }
+    } catch (Throwable t) {
+      if (problem == null) problem = t;
     }
-    state = State.INITIAL;
+    
     if (! "false".equals(TEST_CLEAN_THREADS)) {
       int rogueThreads = threadCleanup("test class");
       if (rogueThreads > 0) {
@@ -266,72 +267,113 @@ public abstract class LuceneTestCase extends Assert {
         System.err.println("RESOURCE LEAK: test class left " + rogueThreads + " thread(s) running");
       }
     }
+
     Locale.setDefault(savedLocale);
     TimeZone.setDefault(savedTimeZone);
     System.clearProperty("solr.solr.home");
     System.clearProperty("solr.data.dir");
-    // now look for unclosed resources
-    if (!testsFailed)
-      for (MockDirectoryWrapper d : stores.keySet()) {
-        if (d.isOpen()) {
-          StackTraceElement elements[] = stores.get(d);
-          // Look for the first class that is not LuceneTestCase that requested
-          // a Directory. The first two items are of Thread's, so skipping over
-          // them.
-          StackTraceElement element = null;
-          for (int i = 2; i < elements.length; i++) {
-            StackTraceElement ste = elements[i];
-            if (ste.getClassName().indexOf("LuceneTestCase") == -1) {
-              element = ste;
-              break;
-            }
-          }
-          fail("directory of test was not closed, opened from: " + element);
-        }
+    
+    try {
+      // now look for unclosed resources
+      if (!testsFailed) {
+        checkResourcesAfterClass();
       }
-    stores = null;
-    // if verbose or tests failed, report some information back
-    if (VERBOSE || testsFailed)
-      System.err.println("NOTE: test params are: " +
-        "locale=" + locale + 
-        ", timezone=" + (timeZone == null ? "(null)" : timeZone.getID()));
-    if (testsFailed) {
-      System.err.println("NOTE: all tests run in this JVM:");
-      System.err.println(Arrays.toString(testClassesRun.toArray()));
-      System.err.println("NOTE: " + System.getProperty("os.name") + " " 
-          + System.getProperty("os.version") + " " 
-          + System.getProperty("os.arch") + "/"
-          + System.getProperty("java.vendor") + " "
-          + System.getProperty("java.version") + " "
-          + (Constants.JRE_IS_64BIT ? "(64-bit)" : "(32-bit)") + "/"
-          + "cpus=" + Runtime.getRuntime().availableProcessors() + ","
-          + "threads=" + Thread.activeCount() + ","
-          + "free=" + Runtime.getRuntime().freeMemory() + ","
-          + "total=" + Runtime.getRuntime().totalMemory());
+    } catch (Throwable t) {
+      if (problem == null) problem = t;
     }
-    // clear out any temp directories if we can
-    if (!testsFailed) {
-      for (Entry<File, StackTraceElement[]> entry : tempDirs.entrySet()) {
-        try {
-          _TestUtil.rmDir(entry.getKey());
-        } catch (IOException e) {
-          e.printStackTrace();
-          System.err.println("path " + entry.getKey() + " allocated from");
-          // first two STE's are Java's
-          StackTraceElement[] elements = entry.getValue();
-          for (int i = 2; i < elements.length; i++) {
-            StackTraceElement ste = elements[i];            
-            // print only our code's stack information
-            if (ste.getClassName().indexOf("org.apache.lucene") == -1) break; 
-            System.err.println("\t" + ste);
+    
+    stores = null;
+
+    try {
+      // clear out any temp directories if we can
+      if (!testsFailed) {
+        clearTempDirectoriesAfterClass();
+      }
+    } catch (Throwable t) {
+      if (problem == null) problem = t;
+    }
+
+    // if we had afterClass failures, get some debugging information
+    if (problem != null) {
+      reportPartialFailureInfo();      
+    }
+    
+    // if verbose or tests failed, report some information back
+    if (VERBOSE || testsFailed || problem != null) {
+      printDebuggingInformation();
+    }
+    
+    // reset seed
+    random.setSeed(0L);
+    random.initialized = false;
+    
+    if (problem != null) {
+      throw new RuntimeException(problem);
+    }
+  }
+  
+  /** print some useful debugging information about the environment */
+  private static void printDebuggingInformation() {
+    System.err.println("NOTE: test params are: " +
+        "locale=" + locale +
+        ", timezone=" + (timeZone == null ? "(null)" : timeZone.getID()));
+    System.err.println("NOTE: all tests run in this JVM:");
+    System.err.println(Arrays.toString(testClassesRun.toArray()));
+    System.err.println("NOTE: " + System.getProperty("os.name") + " "
+        + System.getProperty("os.version") + " "
+        + System.getProperty("os.arch") + "/"
+        + System.getProperty("java.vendor") + " "
+        + System.getProperty("java.version") + " "
+        + (Constants.JRE_IS_64BIT ? "(64-bit)" : "(32-bit)") + "/"
+        + "cpus=" + Runtime.getRuntime().availableProcessors() + ","
+        + "threads=" + Thread.activeCount() + ","
+        + "free=" + Runtime.getRuntime().freeMemory() + ","
+        + "total=" + Runtime.getRuntime().totalMemory());
+  }
+  
+  /** check that directories and their resources were closed */
+  private static void checkResourcesAfterClass() {
+    for (MockDirectoryWrapper d : stores.keySet()) {
+      if (d.isOpen()) {
+        StackTraceElement elements[] = stores.get(d);
+        // Look for the first class that is not LuceneTestCase that requested
+        // a Directory. The first two items are of Thread's, so skipping over
+        // them.
+        StackTraceElement element = null;
+        for (int i = 2; i < elements.length; i++) {
+          StackTraceElement ste = elements[i];
+          if (ste.getClassName().indexOf("LuceneTestCase") == -1) {
+            element = ste;
+            break;
           }
-          fail("could not remove temp dir: " + entry.getKey());
         }
+        fail("directory of test was not closed, opened from: " + element);
+      }
+    }
+  }
+  
+  /** clear temp directories: this will fail if its not successful */
+  private static void clearTempDirectoriesAfterClass() {
+    for (Entry<File, StackTraceElement[]> entry : tempDirs.entrySet()) {
+      try {
+        _TestUtil.rmDir(entry.getKey());
+      } catch (IOException e) {
+        e.printStackTrace();
+        System.err.println("path " + entry.getKey() + " allocated from");
+        // first two STE's are Java's
+        StackTraceElement[] elements = entry.getValue();
+        for (int i = 2; i < elements.length; i++) {
+          StackTraceElement ste = elements[i];            
+          // print only our code's stack information
+          if (ste.getClassName().indexOf("org.apache.lucene") == -1) break; 
+          System.err.println("\t" + ste);
+        }
+        fail("could not remove temp dir: " + entry.getKey());
       }
     }
   }
 
-  private static boolean testsFailed; /* true if any tests failed */
+  protected static boolean testsFailed; /* true if any tests failed */
   
   // This is how we get control when errors occur.
   // Think of this as start/end/success/failed
@@ -344,7 +386,7 @@ public abstract class LuceneTestCase extends Assert {
       // org.junit.internal.AssumptionViolatedException in older releases
       // org.junit.Assume.AssumptionViolatedException in recent ones
       if (e.getClass().getName().endsWith("AssumptionViolatedException")) {
-        if (e.getCause() instanceof TestIgnoredException)
+        if (e.getCause() instanceof _TestIgnoredException)
           e = e.getCause();
         System.err.print("NOTE: Assume failed in '" + method.getName() + "' (ignored):");
         if (VERBOSE) {
@@ -365,22 +407,22 @@ public abstract class LuceneTestCase extends Assert {
     public void starting(FrameworkMethod method) {
       // set current method name for logging
       LuceneTestCase.this.name = method.getName();
+      State s = state; // capture test execution state
+      state = State.RANTEST; // set the state for subsequent tests
       if (!testsFailed) {
-        assertTrue("ensure your setUp() calls super.setUp()!!!", state == State.SETUP);
+        assertTrue("ensure your setUp() calls super.setUp()!!!", s == State.SETUP);
       }
-      state = State.RANTEST;
       super.starting(method);
     }
   };
 
   @Before
   public void setUp() throws Exception {
-    seed = "random".equals(TEST_SEED) ? seedRand.nextLong() : TwoLongs.fromString(TEST_SEED).l2;
+    seed = "random".equals(TEST_SEED) ? seedRand.nextLong() : ThreeLongs.fromString(TEST_SEED).l2;
     random.setSeed(seed);
-    if (!testsFailed) {
-      assertTrue("ensure your tearDown() calls super.tearDown()!!!", (state == State.INITIAL || state == State.TEARDOWN));
-    }
-    state = State.SETUP;
+    State s = state; // capture test execution state
+    state = State.SETUP; // set the state for subsequent tests
+   
     savedUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
     Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
       public void uncaughtException(Thread t, Throwable e) {
@@ -388,12 +430,15 @@ public abstract class LuceneTestCase extends Assert {
         uncaughtExceptions.add(new UncaughtExceptionEntry(t, e));
         if (savedUncaughtExceptionHandler != null)
           savedUncaughtExceptionHandler.uncaughtException(t, e);
-      }
+        }
     });
     
     savedBoolMaxClauseCount = BooleanQuery.getMaxClauseCount();
-  }
 
+    if (!testsFailed) {
+      assertTrue("ensure your tearDown() calls super.tearDown()!!!", (s == State.INITIAL || s == State.TEARDOWN));
+    }
+  }
 
   /**
    * Forcible purges all cache entries from the FieldCache.
@@ -437,38 +482,39 @@ public abstract class LuceneTestCase extends Assert {
 
   @After
   public void tearDown() throws Exception {
-    if (!testsFailed) {
-      // Note: we allow a test to go straight from SETUP -> TEARDOWN (without ever entering the RANTEST state)
-      // because if you assume() inside setUp(), it skips the test and the TestWatchman has no way to know...
-      assertTrue("ensure your setUp() calls super.setUp()!!!", state == State.RANTEST || state == State.SETUP);
-    }
-    state = State.TEARDOWN;
-    BooleanQuery.setMaxClauseCount(savedBoolMaxClauseCount);
-    if ("perMethod".equals(TEST_CLEAN_THREADS)) {
-      int rogueThreads = threadCleanup("test method: '" + getName() + "'");
-      if (rogueThreads > 0) {
-        System.err.println("RESOURCE LEAK: test method: '" + getName() 
-            + "' left " + rogueThreads + " thread(s) running");
-        // TODO: fail, but print seed for now.
-        if (!testsFailed && uncaughtExceptions.isEmpty()) {
-          reportAdditionalFailureInfo();
-        }
-      }
-    }
-    Thread.setDefaultUncaughtExceptionHandler(savedUncaughtExceptionHandler);
+    State oldState = state; // capture test execution state
+    state = State.TEARDOWN; // set the state for subsequent tests
+    
+    // NOTE: with junit 4.7, we don't get a reproduceWith because our Watchman
+    // does not know if something fails in tearDown. so we ensure this happens ourselves for now.
+    // we can remove this if we upgrade to 4.8
+    Throwable problem = null;
+    
     try {
-
-      if (!uncaughtExceptions.isEmpty()) {
-        testsFailed = true;
-        reportAdditionalFailureInfo();
-        System.err.println("The following exceptions were thrown by threads:");
-        for (UncaughtExceptionEntry entry : uncaughtExceptions) {
-          System.err.println("*** Thread: " + entry.thread.getName() + " ***");
-          entry.exception.printStackTrace(System.err);
-        }
-        fail("Some threads threw uncaught exceptions!");
+      if (!testsFailed) {
+        // Note: we allow a test to go straight from SETUP -> TEARDOWN (without ever entering the RANTEST state)
+        // because if you assume() inside setUp(), it skips the test and the TestWatchman has no way to know...
+        assertTrue("ensure your setUp() calls super.setUp()!!!", oldState == State.RANTEST || oldState == State.SETUP);
       }
+    } catch (Throwable t) {
+      if (problem == null) problem = t;
+    }
 
+    BooleanQuery.setMaxClauseCount(savedBoolMaxClauseCount);
+
+    // this won't throw any exceptions or fail the test
+    // if we change this, then change this logic
+    checkRogueThreadsAfter();
+    // restore the default uncaught exception handler
+    Thread.setDefaultUncaughtExceptionHandler(savedUncaughtExceptionHandler);
+    
+    try {
+      checkUncaughtExceptionsAfter();
+    } catch (Throwable t) {
+      if (problem == null) problem = t;
+    }
+    
+    try {
       // calling assertSaneFieldCaches here isn't as useful as having test 
       // classes call it directly from the scope where the index readers 
       // are used, because they could be gc'ed just before this tearDown 
@@ -482,9 +528,44 @@ public abstract class LuceneTestCase extends Assert {
       // your Test class so that the inconsistant FieldCache usages are 
       // isolated in distinct test methods  
       assertSaneFieldCaches(getTestLabel());
-
-    } finally {
-      purgeFieldCache(FieldCache.DEFAULT);
+    } catch (Throwable t) {
+      if (problem == null) problem = t;
+    }
+    
+    purgeFieldCache(FieldCache.DEFAULT);
+    
+    if (problem != null) {
+      testsFailed = true;
+      reportAdditionalFailureInfo();
+      throw new RuntimeException(problem);
+    }
+  }
+  
+  /** check if the test still has threads running, we don't want them to 
+   *  fail in a subsequent test and pass the blame to the wrong test */
+  private void checkRogueThreadsAfter() {
+    if ("perMethod".equals(TEST_CLEAN_THREADS)) {
+      int rogueThreads = threadCleanup("test method: '" + getName() + "'");
+      if (!testsFailed && rogueThreads > 0) {
+        System.err.println("RESOURCE LEAK: test method: '" + getName()
+            + "' left " + rogueThreads + " thread(s) running");
+        // TODO: fail, but print seed for now
+        if (uncaughtExceptions.isEmpty()) {
+          reportAdditionalFailureInfo();
+        }
+      }
+    }
+  }
+  
+  /** see if any other threads threw uncaught exceptions, and fail the test if so */
+  private void checkUncaughtExceptionsAfter() {
+    if (!uncaughtExceptions.isEmpty()) {
+      System.err.println("The following exceptions were thrown by threads:");
+      for (UncaughtExceptionEntry entry : uncaughtExceptions) {
+        System.err.println("*** Thread: " + entry.thread.getName() + " ***");
+        entry.exception.printStackTrace(System.err);
+      }
+      fail("Some threads threw uncaught exceptions!");
     }
   }
 
@@ -604,7 +685,7 @@ public abstract class LuceneTestCase extends Assert {
    * is active and {@link #RANDOM_MULTIPLIER}, but also with some random fudge.
    */
   public static int atLeast(Random random, int i) {
-    int min = (TEST_NIGHTLY ? 5*i : i) * RANDOM_MULTIPLIER;
+    int min = (TEST_NIGHTLY ? 3*i : i) * RANDOM_MULTIPLIER;
     int max = min+(min/2);
     return _TestUtil.nextInt(random, min, max);
   }
@@ -620,9 +701,9 @@ public abstract class LuceneTestCase extends Assert {
    * is active and {@link #RANDOM_MULTIPLIER}.
    */
   public static boolean rarely(Random random) {
-    int p = TEST_NIGHTLY ? 25 : 5;
+    int p = TEST_NIGHTLY ? 10 : 5;
     p += (p * Math.log(RANDOM_MULTIPLIER));
-    int min = 100 - Math.min(p, 90); // never more than 90
+    int min = 100 - Math.min(p, 50); // never more than 50
     return random.nextInt(100) >= min;
   }
   
@@ -660,39 +741,8 @@ public abstract class LuceneTestCase extends Assert {
     assertEquals(message, Float.valueOf(expected), Float.valueOf(actual));
   }
   
-  // Replacement for Assume jUnit class, so we can add a message with explanation:
-  
-  private static final class TestIgnoredException extends RuntimeException {
-    TestIgnoredException(String msg) {
-      super(msg);
-    }
-    
-    TestIgnoredException(String msg, Throwable t) {
-      super(msg, t);
-    }
-    
-    @Override
-    public String getMessage() {
-      StringBuilder sb = new StringBuilder(super.getMessage());
-      if (getCause() != null)
-        sb.append(" - ").append(getCause());
-      return sb.toString();
-    }
-    
-    // only this one is called by our code, exception is not used outside this class:
-    @Override
-    public void printStackTrace(PrintStream s) {
-      if (getCause() != null) {
-        s.println(super.toString() + " - Caused by:");
-        getCause().printStackTrace(s);
-      } else {
-        super.printStackTrace(s);
-      }
-    }
-  }
-  
   public static void assumeTrue(String msg, boolean b) {
-    Assume.assumeNoException(b ? null : new TestIgnoredException(msg));
+    Assume.assumeNoException(b ? null : new _TestIgnoredException(msg));
   }
  
   public static void assumeFalse(String msg, boolean b) {
@@ -700,7 +750,7 @@ public abstract class LuceneTestCase extends Assert {
   }
   
   public static void assumeNoException(String msg, Exception e) {
-    Assume.assumeNoException(e == null ? null : new TestIgnoredException(msg, e));
+    Assume.assumeNoException(e == null ? null : new _TestIgnoredException(msg, e));
   }
  
   /**
@@ -765,7 +815,7 @@ public abstract class LuceneTestCase extends Assert {
     if (r.nextBoolean()) {
       if (rarely(r)) {
         // crazy value
-        c.setTermIndexInterval(random.nextBoolean() ? _TestUtil.nextInt(r, 1, 31) : _TestUtil.nextInt(r, 129, 1000));
+        c.setTermIndexInterval(r.nextBoolean() ? _TestUtil.nextInt(r, 1, 31) : _TestUtil.nextInt(r, 129, 1000));
       } else {
         // reasonable value
         c.setTermIndexInterval(_TestUtil.nextInt(r, 32, 128));
@@ -1156,14 +1206,21 @@ public abstract class LuceneTestCase extends Assert {
   }
 
   // We get here from InterceptTestCaseEvents on the 'failed' event....
+  public static void reportPartialFailureInfo() {
+    System.err.println("NOTE: reproduce with (hopefully): ant test -Dtestcase=" + testClassesRun.get(testClassesRun.size()-1)
+        + " -Dtests.seed=" + new ThreeLongs(staticSeed, 0L, LuceneTestCaseRunner.runnerSeed)
+        + reproduceWithExtraParams());
+  }
+  
+  // We get here from InterceptTestCaseEvents on the 'failed' event....
   public void reportAdditionalFailureInfo() {
     System.err.println("NOTE: reproduce with: ant test -Dtestcase=" + getClass().getSimpleName() 
-        + " -Dtestmethod=" + getName() + " -Dtests.seed=" + new TwoLongs(staticSeed, seed)
+        + " -Dtestmethod=" + getName() + " -Dtests.seed=" + new ThreeLongs(staticSeed, seed, LuceneTestCaseRunner.runnerSeed)
         + reproduceWithExtraParams());
   }
   
   // extra params that were overridden needed to reproduce the command
-  private String reproduceWithExtraParams() {
+  private static String reproduceWithExtraParams() {
     StringBuilder sb = new StringBuilder();
     if (!TEST_LOCALE.equals("random")) sb.append(" -Dtests.locale=").append(TEST_LOCALE);
     if (!TEST_TIMEZONE.equals("random")) sb.append(" -Dtests.timezone=").append(TEST_TIMEZONE);
@@ -1178,9 +1235,9 @@ public abstract class LuceneTestCase extends Assert {
   // seed for individual test methods, changed in @before
   private long seed;
   
-  private static final Random seedRand = new Random();
-  protected static final Random random = new Random(0);
-
+  static final Random seedRand = new Random();
+  protected static final SmartRandom random = new SmartRandom(0);
+  
   private String name = "<unknown>";
   
   /**
@@ -1190,119 +1247,6 @@ public abstract class LuceneTestCase extends Assert {
   @Inherited
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Nightly {}
-  
-  /** optionally filters the tests to be run by TEST_METHOD */
-  public static class LuceneTestCaseRunner extends BlockJUnit4ClassRunner {
-    private List<FrameworkMethod> testMethods;
-
-    @Override
-    protected List<FrameworkMethod> computeTestMethods() {
-      if (testMethods != null)
-        return testMethods;
-      testClassesRun.add(getTestClass().getJavaClass().getSimpleName());
-      testMethods = new ArrayList<FrameworkMethod>();
-      for (Method m : getTestClass().getJavaClass().getMethods()) {
-        // check if the current test's class has methods annotated with @Ignore
-        final Ignore ignored = m.getAnnotation(Ignore.class);
-        if (ignored != null && !m.getName().equals("alwaysIgnoredTestMethod")) {
-          System.err.println("NOTE: Ignoring test method '" + m.getName() + "': " + ignored.value());
-        }
-        // add methods starting with "test"
-        final int mod = m.getModifiers();
-        if (m.getAnnotation(Test.class) != null ||
-            (m.getName().startsWith("test") &&
-            !Modifier.isAbstract(mod) &&
-            m.getParameterTypes().length == 0 &&
-            m.getReturnType() == Void.TYPE))
-        {
-          if (Modifier.isStatic(mod))
-            throw new RuntimeException("Test methods must not be static.");
-          testMethods.add(new FrameworkMethod(m));
-        }
-      }
-      
-      if (testMethods.isEmpty()) {
-        throw new RuntimeException("No runnable methods!");
-      }
-      
-      if (TEST_NIGHTLY == false) {
-        if (getTestClass().getJavaClass().isAnnotationPresent(Nightly.class)) {
-          /* the test class is annotated with nightly, remove all methods */
-          String className = getTestClass().getJavaClass().getSimpleName();
-          System.err.println("NOTE: Ignoring nightly-only test class '" + className + "'");
-          testMethods.clear();
-        } else {
-          /* remove all nightly-only methods */
-          for (int i = 0; i < testMethods.size(); i++) {
-            final FrameworkMethod m = testMethods.get(i);
-            if (m.getAnnotation(Nightly.class) != null) {
-              System.err.println("NOTE: Ignoring nightly-only test method '" + m.getName() + "'");
-              testMethods.remove(i--);
-            }
-          }
-        }
-        /* dodge a possible "no-runnable methods" exception by adding a fake ignored test */
-        if (testMethods.isEmpty()) {
-          try {
-            testMethods.add(new FrameworkMethod(LuceneTestCase.class.getMethod("alwaysIgnoredTestMethod")));
-          } catch (Exception e) { throw new RuntimeException(e); }
-        }
-      }
-      return testMethods;
-    }
-
-    @Override
-    protected void runChild(FrameworkMethod arg0, RunNotifier arg1) {
-      if (VERBOSE) {
-        System.out.println("\nNOTE: running test " + arg0.getName());
-      }
-      
-      // only print iteration info if the user requested more than one iterations
-      final boolean verbose = VERBOSE && TEST_ITER > 1;
-      
-      final int currentIter[] = new int[1];
-      arg1.addListener(new RunListener() {
-        @Override
-        public void testFailure(Failure failure) throws Exception {
-          if (verbose) {
-            System.out.println("\nNOTE: iteration " + currentIter[0] + " failed! ");
-          }
-        }
-      });
-      for (int i = 0; i < TEST_ITER; i++) {
-        currentIter[0] = i;
-        if (verbose) {
-          System.out.println("\nNOTE: running iter=" + (1+i) + " of " + TEST_ITER);
-        }
-        super.runChild(arg0, arg1);
-        if (testsFailed) {
-          if (i >= TEST_ITER_MIN - 1) { // XXX is this still off-by-one?
-            break;
-          }
-        }
-      }
-    }
-
-    public LuceneTestCaseRunner(Class<?> clazz) throws InitializationError {
-      super(clazz);
-      Filter f = new Filter() {
-
-        @Override
-        public String describe() { return "filters according to TEST_METHOD"; }
-
-        @Override
-        public boolean shouldRun(Description d) {
-          return TEST_METHOD == null || d.getMethodName().equals(TEST_METHOD);
-        }     
-      };
-      
-      try {
-        f.apply(this);
-      } catch (NoTestsRemainException e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
   
   @Ignore("just a hack")
   public final void alwaysIgnoredTestMethod() {}
