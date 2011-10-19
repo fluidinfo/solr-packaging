@@ -13,7 +13,7 @@ CHANGESFILE = ../solr_$(DEB_VERSION)_$(DEB_BUILD_ARCH).changes
 JAVA_HOME = /usr/lib/jvm/default-java
 
 # Set ant parameters
-DEB_ANT_BUILD_TARGET = dist-solrj dist dist-contrib compile make-manifest lucene-jars-to-solr
+DEB_ANT_BUILD_TARGET = dist-solrj dist dist-contrib compile lucene-jars-to-solr
 DEB_ANT_BUILDFILE = solr/build.xml
 #DEB_ANT_CHECK_TARGET = test
 DEB_JARS = ant-junit junit4 ant-nodeps
