@@ -1,7 +1,7 @@
 solr/webapp/web/WEB-INF/web.xml /etc/solr/
-solr/src/scripts /usr/share/solr
+solr/scripts /usr/share/solr
 solr/example/solr/conf /etc/solr
 solr/dist/*.jar /usr/share/solr/WEB-INF/lib/
-solr/src/webapp/web/* /usr/share/solr/
+solr/webapp/web/* /usr/share/solr/
 solr/build/web/* /usr/share/solr/
-solr/lucene-libs/*.jar /usr/share/solr/WEB-INF/lib/
+solr/build/lucene-libs/*.jar /usr/share/solr/WEB-INF/lib/
