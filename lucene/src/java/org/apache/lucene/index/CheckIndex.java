@@ -175,8 +175,8 @@ public class CheckIndex {
       int numFields;
 
       /** True if at least one of the fields in this segment
-       *  does not omitTermFreqAndPositions.
-       *  @see AbstractField#setOmitTermFreqAndPositions */
+       *  has position data
+       *  @see AbstractField#setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions) */
       public boolean hasProx;
 
       /** Map that includes certain
@@ -666,7 +666,6 @@ public class CheckIndex {
 
       final TermEnum termEnum = reader.terms();
       final TermPositions termPositions = reader.termPositions();
-      final int postingsSkipInterval = reader.getPostingsSkipInterval();
 
       // Used only to count up # deleted docs for this term
       final MySegmentTermDocs myTermDocs = new MySegmentTermDocs(reader);
@@ -709,42 +708,40 @@ public class CheckIndex {
         }
 
         // Test skipping
-        if (docFreq >= postingsSkipInterval) {
-          
-          for(int idx=0;idx<7;idx++) {
-            final int skipDocID = (int) (((idx+1)*(long) maxDoc)/8);
-            termPositions.seek(term);
-            if (!termPositions.skipTo(skipDocID)) {
+        for(int idx=0;idx<7;idx++) {
+          final int skipDocID = (int) (((idx+1)*(long) maxDoc)/8);
+          termPositions.seek(term);
+          if (!termPositions.skipTo(skipDocID)) {
+            break;
+          } else {
+
+            final int docID = termPositions.doc();
+            if (docID < skipDocID) {
+              throw new RuntimeException("term " + term + ": skipTo(docID=" + skipDocID + ") returned docID=" + docID);
+            }
+            final int freq = termPositions.freq();
+            if (freq <= 0) {
+              throw new RuntimeException("termFreq " + freq + " is out of bounds");
+            }
+            int lastPosition = -1;
+            for(int posUpto=0;posUpto<freq;posUpto++) {
+              final int pos = termPositions.nextPosition();
+              if (pos < 0) {
+                throw new RuntimeException("position " + pos + " is out of bounds");
+              }
+              // TODO: we should assert when all pos == 0 that positions are actually omitted
+              if (pos < lastPosition) {
+                throw new RuntimeException("position " + pos + " is < lastPosition " + lastPosition);
+              }
+              lastPosition = pos;
+            } 
+
+            if (!termPositions.next()) {
               break;
-            } else {
-
-              final int docID = termPositions.doc();
-              if (docID < skipDocID) {
-                throw new RuntimeException("term " + term + ": skipTo(docID=" + skipDocID + ") returned docID=" + docID);
-              }
-              final int freq = termPositions.freq();
-              if (freq <= 0) {
-                throw new RuntimeException("termFreq " + freq + " is out of bounds");
-              }
-              int lastPosition = -1;
-              for(int posUpto=0;posUpto<freq;posUpto++) {
-                final int pos = termPositions.nextPosition();
-                if (pos < 0) {
-                  throw new RuntimeException("position " + pos + " is out of bounds");
-                }
-                if (pos <= lastPosition) {
-                  throw new RuntimeException("position " + pos + " is <= lastPosition " + lastPosition);
-                }
-                lastPosition = pos;
-              } 
-
-              if (!termPositions.next()) {
-                break;
-              }
-              final int nextDocID = termPositions.doc();
-              if (nextDocID <= docID) {
-                throw new RuntimeException("term " + term + ": skipTo(docID=" + skipDocID + "), then .next() returned docID=" + nextDocID + " vs prev docID=" + docID);
-              }
+            }
+            final int nextDocID = termPositions.doc();
+            if (nextDocID <= docID) {
+              throw new RuntimeException("term " + term + ": skipTo(docID=" + skipDocID + "), then .next() returned docID=" + nextDocID + " vs prev docID=" + docID);
             }
           }
         }

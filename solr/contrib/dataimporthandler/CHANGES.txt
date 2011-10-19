@@ -7,7 +7,18 @@ DataImportHandler is a data import tool for Solr which makes importing data from
 HTTP data sources quick and easy.
 
 
-$Id: CHANGES.txt 1139028 2011-06-23 18:22:50Z rmuir $
+$Id: CHANGES.txt 1166275 2011-09-07 17:26:19Z mikemccand $
+
+==================  3.4.0 ==================
+
+Bug Fixes
+----------------------
+* SOLR-2644: When using threads=2 the default logging is set too high (Bill Bell via shalin)
+* SOLR-2492: DIH does not commit if only deletes are processed (James Dyer via shalin)
+* SOLR-2186: DataImportHandler's multi-threaded option throws NPE (Lance Norskog, Frank Wesemann, shalin)
+* SOLR-2655: DIH multi threaded mode does not resolve attributes correctly (Frank Wesemann, shalin)
+* SOLR-2695: Documents are collected in unsynchronized list in multi-threaded debug mode (Michael McCandless, shalin)
+* SOLR-2668: DIH multithreaded mode does not rollback on errors from EntityProcessor (Frank Wesemann, shalin)
 
 ==================  3.3.0 ==================
 

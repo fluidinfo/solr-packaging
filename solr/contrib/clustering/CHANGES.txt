@@ -8,6 +8,14 @@ CHANGES
 
 $Id$
 
+================== Release 3.4.0 ==================
+
+SOLR-2706: The carrot.lexicalResourcesDir parameter now works 
+   with absolute directories (Stanislaw Osinski)
+  
+SOLR-2692: Typo in param name fixed: "carrot.fragzise" changed to 
+  "carrot.fragSize" (Stanislaw Osinski).
+
 ================== Release 3.3.0 ==================
 
 * SOLR-2620: Removed unnecessary log4j jar (Dawid Weiss).

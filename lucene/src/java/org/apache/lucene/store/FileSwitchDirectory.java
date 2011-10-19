@@ -78,11 +78,38 @@ public class FileSwitchDirectory extends Directory {
   @Override
   public String[] listAll() throws IOException {
     Set<String> files = new HashSet<String>();
-    for(String f : primaryDir.listAll()) {
-      files.add(f);
+    // LUCENE-3380: either or both of our dirs could be FSDirs,
+    // but if one underlying delegate is an FSDir and mkdirs() has not
+    // yet been called, because so far everything is written to the other,
+    // in this case, we don't want to throw a NoSuchDirectoryException
+    NoSuchDirectoryException exc = null;
+    try {
+      for(String f : primaryDir.listAll()) {
+        files.add(f);
+      }
+    } catch (NoSuchDirectoryException e) {
+      exc = e;
     }
-    for(String f : secondaryDir.listAll()) {
-      files.add(f);
+    try {
+      for(String f : secondaryDir.listAll()) {
+        files.add(f);
+      }
+    } catch (NoSuchDirectoryException e) {
+      // we got NoSuchDirectoryException from both dirs
+      // rethrow the first.
+      if (exc != null) {
+        throw exc;
+      }
+      // we got NoSuchDirectoryException from the secondary,
+      // and the primary is empty.
+      if (files.isEmpty()) {
+        throw e;
+      }
+    }
+    // we got NoSuchDirectoryException from the primary,
+    // and the secondary is empty.
+    if (exc != null && files.isEmpty()) {
+      throw exc;
     }
     return files.toArray(new String[files.size()]);
   }

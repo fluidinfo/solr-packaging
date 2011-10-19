@@ -21,11 +21,11 @@ import java.io.IOException;
 import java.io.File;
 
 import org.apache.lucene.util.LuceneTestCase;
-import junit.framework.TestSuite;
-import junit.textui.TestRunner;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.MockDirectoryWrapper;
+import org.apache.lucene.store.MockDirectoryWrapper.Failure;
 import org.apache.lucene.store.SimpleFSDirectory;
 import org.apache.lucene.store._TestHelper;
 import org.apache.lucene.util._TestUtil;
@@ -33,26 +33,7 @@ import org.apache.lucene.util._TestUtil;
 
 public class TestCompoundFile extends LuceneTestCase
 {
-    /** Main for running test case by itself. */
-    public static void main(String args[]) {
-        TestRunner.run (new TestSuite(TestCompoundFile.class));
-//        TestRunner.run (new TestCompoundFile("testSingleFile"));
-//        TestRunner.run (new TestCompoundFile("testTwoFiles"));
-//        TestRunner.run (new TestCompoundFile("testRandomFiles"));
-//        TestRunner.run (new TestCompoundFile("testClonedStreamsClosing"));
-//        TestRunner.run (new TestCompoundFile("testReadAfterClose"));
-//        TestRunner.run (new TestCompoundFile("testRandomAccess"));
-//        TestRunner.run (new TestCompoundFile("testRandomAccessClones"));
-//        TestRunner.run (new TestCompoundFile("testFileNotFound"));
-//        TestRunner.run (new TestCompoundFile("testReadPastEOF"));
-
-//        TestRunner.run (new TestCompoundFile("testIWCreate"));
-
-    }
-
-
     private Directory dir;
-
 
     @Override
     public void setUp() throws Exception {
@@ -669,4 +650,39 @@ public class TestCompoundFile extends LuceneTestCase
        newDir.close();
    }
 
+  // Make sure we don't somehow use more than 1 descriptor
+  // when reading a CFS with many subs:
+  public void testManySubFiles() throws IOException {
+
+    final Directory d = newFSDirectory(_TestUtil.getTempDir("CFSManySubFiles"));
+    final int FILE_COUNT = 10000;
+
+    for(int fileIdx=0;fileIdx<FILE_COUNT;fileIdx++) {
+      IndexOutput out = d.createOutput("file." + fileIdx);
+      out.writeByte((byte) fileIdx);
+      out.close();
+    }
+    
+    final CompoundFileWriter cfw = new CompoundFileWriter(d, "c.cfs");
+    for(int fileIdx=0;fileIdx<FILE_COUNT;fileIdx++) {
+      cfw.addFile("file." + fileIdx);
+    }
+    cfw.close();
+
+    final IndexInput[] ins = new IndexInput[FILE_COUNT];
+    final CompoundFileReader cfr = new CompoundFileReader(d, "c.cfs");
+    for(int fileIdx=0;fileIdx<FILE_COUNT;fileIdx++) {
+      ins[fileIdx] = cfr.openInput("file." + fileIdx);
+    }
+
+    for(int fileIdx=0;fileIdx<FILE_COUNT;fileIdx++) {
+      assertEquals((byte) fileIdx, ins[fileIdx].readByte());
+    }
+
+    for(int fileIdx=0;fileIdx<FILE_COUNT;fileIdx++) {
+      ins[fileIdx].close();
+    }
+    cfr.close();
+    d.close();
+  }
 }

@@ -26,7 +26,7 @@ import org.apache.lucene.index.IndexWriter; // javadoc
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.OpenBitSet;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.Version;
 
 /**
@@ -46,6 +46,22 @@ import org.apache.lucene.util.Version;
  * break up such document groups.
  */
 public class MultiPassIndexSplitter {
+  /**
+   * Split source index into multiple parts.
+   * @param input source index, can be read-only, can have deletions, can have
+   * multiple segments (or multiple readers).
+   * @param outputs list of directories where the output parts will be stored.
+   * @param seq if true, then the source index will be split into equal
+   * increasing ranges of document id-s. If false, source document id-s will be
+   * assigned in a deterministic round-robin fashion to one of the output splits.
+   * @throws IOException
+   * @deprecated use {@link #split(Version, IndexReader, Directory[], boolean)} instead. 
+   *             This method will be removed in Lucene 4.0. 
+   */
+  @Deprecated
+  public void split(IndexReader input, Directory[] outputs, boolean seq) throws IOException {
+    split(Version.LUCENE_CURRENT, input, outputs, seq);
+  }
   
   /**
    * Split source index into multiple parts.
@@ -57,7 +73,7 @@ public class MultiPassIndexSplitter {
    * assigned in a deterministic round-robin fashion to one of the output splits.
    * @throws IOException
    */
-  public void split(IndexReader input, Directory[] outputs, boolean seq) throws IOException {
+  public void split(Version version, IndexReader input, Directory[] outputs, boolean seq) throws IOException {
     if (outputs == null || outputs.length < 2) {
       throw new IOException("Invalid number of outputs.");
     }
@@ -96,7 +112,7 @@ public class MultiPassIndexSplitter {
         }
       }
       IndexWriter w = new IndexWriter(outputs[i], new IndexWriterConfig(
-          Version.LUCENE_CURRENT,
+          version,
           new WhitespaceAnalyzer(Version.LUCENE_CURRENT))
           .setOpenMode(OpenMode.CREATE));
       System.err.println("Writing part " + (i + 1) + " ...");
@@ -106,6 +122,7 @@ public class MultiPassIndexSplitter {
     System.err.println("Done.");
   }
   
+  @SuppressWarnings("deprecation")
   public static void main(String[] args) throws Exception {
     if (args.length < 5) {
       System.err.println("Usage: MultiPassIndexSplitter -out <outputDir> -num <numParts> [-seq] <inputIndex1> [<inputIndex2 ...]");
@@ -169,7 +186,7 @@ public class MultiPassIndexSplitter {
     } else {
       input = new MultiReader(indexes.toArray(new IndexReader[indexes.size()]));
     }
-    splitter.split(input, dirs, seq);
+    splitter.split(Version.LUCENE_CURRENT, input, dirs, seq);
   }
   
   /**
@@ -178,14 +195,14 @@ public class MultiPassIndexSplitter {
    * list of deletions.
    */
   public static class FakeDeleteIndexReader extends FilterIndexReader {
-    OpenBitSet dels;
-    OpenBitSet oldDels = null;
+    FixedBitSet dels;
+    FixedBitSet oldDels;
 
     public FakeDeleteIndexReader(IndexReader in) {
       super(in);
-      dels = new OpenBitSet(in.maxDoc());
+      dels = new FixedBitSet(in.maxDoc());
       if (in.hasDeletions()) {
-        oldDels = new OpenBitSet(in.maxDoc());
+        oldDels = new FixedBitSet(in.maxDoc());
         for (int i = 0; i < in.maxDoc(); i++) {
           if (in.isDeleted(i)) oldDels.set(i);
         }
@@ -195,7 +212,7 @@ public class MultiPassIndexSplitter {
 
     @Override
     public int numDocs() {
-      return in.maxDoc() - (int)dels.cardinality();
+      return in.maxDoc() - dels.cardinality();
     }
 
     /**
@@ -204,7 +221,7 @@ public class MultiPassIndexSplitter {
      */
     @Override
     protected void doUndeleteAll() throws CorruptIndexException, IOException {
-      dels = new OpenBitSet(in.maxDoc());
+      dels = new FixedBitSet(in.maxDoc());
       if (oldDels != null) {
         dels.or(oldDels);
       }
@@ -217,7 +234,7 @@ public class MultiPassIndexSplitter {
 
     @Override
     public boolean hasDeletions() {
-      return !dels.isEmpty();
+      return in.maxDoc() != this.numDocs();
     }
 
     @Override

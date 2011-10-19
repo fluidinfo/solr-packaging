@@ -21,6 +21,202 @@ when more advanced customization is required.
 See README.txt and http://lucene.apache.org/solr for more information
 on how to get started.
 
+==================  3.4.0  ==================
+
+Upgrading from Solr 3.3
+----------------------
+
+* The Lucene index format has changed and as a result, once you upgrade,
+  previous versions of Solr will no longer be able to read your indices.
+  In a master/slave configuration, all searchers/slaves should be upgraded
+  before the master.  If the master were to be updated first, the older
+  searchers would not be able to read the new index format.
+
+* Previous versions of Solr silently allow and ignore some contradictory 
+  properties specified in schema.xml.  For example:
+    - indexed="false" omitNorms="false" 
+    - indexed="false" omitTermFreqAndPositions="false"
+  Field property validation has now been fixed, to ensure that
+  contradictions like these now generate error messages.  If users
+  have existing schemas that generate one of these new "conflicting
+  'false' field options for non-indexed field" error messages the
+  conflicting "omit*" properties can safely be removed, or changed to
+  "true" for consistent behavior with previous Solr versions.  This
+  situation has now been fixed to cause an error on startup when these
+  contradictory options.  See SOLR-2669.
+  
+* FacetComponent no longer catches and embeds exceptions occurred during facet
+  processing, it throws HTTP 400 or 500 exceptions instead.
+
+New Features
+----------------------
+
+* SOLR-2540: CommitWithin as an Update Request parameter
+  You can now specify &commitWithin=N (ms) on the update request (janhoy)
+
+* SOLR-2383: /browse improvements: generalize range and date facet display
+  Backported from trunk. Removed facet.date support in Velocity, since this is 
+  deprecated in favor of facet.range (gsingers, janhoy)
+
+* SOLR-2458: post.jar enhanced to handle JSON, CSV and <optimize> (janhoy)
+
+* LUCENE-3234: add a new parameter hl.phraseLimit for FastVectorHighlighter speed up.
+  (Mike Sokolov via koji)
+
+* SOLR-2429: Ability to add cache=false to queries and query filters to avoid
+  using the filterCache or queryCache.  A cost may also be specified and is used
+  to order the evaluation of non-cached filters from least to greatest cost .
+  For very expensive query filters (cost >= 100) if the query implements
+  the PostFilter interface, it will be used to obtain a Collector that is
+  checked only for documents that match the main query and all other filters.
+  The "frange" query now implements the PostFilter interface.  (yonik)
+
+* SOLR-2630: Added new XsltUpdateRequestHandler that works like
+  XmlUpdateRequestHandler but allows to transform the POSTed XML document
+  using XSLT. This allows to POST arbitrary XML documents to the update
+  handler, as long as you also provide a XSL to transform them to a valid
+  Solr input document.  (Upayavira, Uwe Schindler)
+
+* SOLR-2615: Log individual updates (adds and deletes) at the FINE level
+  before adding to the index.  Fix a null pointer exception in logging
+  when there was no unique key. (David Smiley via yonik)
+
+* LUCENE-2048: Added omitPositions to the schema, so you can omit position
+  information while still indexing term frequencies.  (rmuir)
+
+* SOLR-2584: add UniqFieldsUpdateProcessor that removes duplicate values in the
+  specified fields. (Elmer Garduno, koji)
+
+* SOLR-2670: Added NIOFSDirectoryFactory (yonik)
+
+* SOLR-2523: Added support in SolrJ to easily interact with range facets.
+  The range facet response can be parsed and is retrievable from the
+  QueryResponse class. The SolrQuery class has convenient methods for using
+  range facets. (Martijn van Groningen)
+
+* SOLR-2637: Added support for group result parsing in SolrJ.
+  (Tao Cheng, Martijn van Groningen)
+
+* SOLR-2665: Added post group faceting. Facet counts are based on the most
+  relevant document of each group matching the query. This feature has the
+  same impact on the StatsComponent. (Martijn van Groningen)
+
+* SOLR-2675: CoreAdminHandler now allows arbitrary properties to be
+  specified when CREATEing a new SolrCore using property.* request
+  params.  (Yury Kats, hossman)
+
+* SOLR-2714: JSON update format - "null" field values are now dropped
+  instead of causing an exception. (Trygve Laugstøl, yonik)
+
+
+Optimizations
+----------------------
+
+* LUCENE-3233: Improved memory usage, build time, and performance of 
+  SynonymFilterFactory.  (Mike McCandless, Robert Muir)
+
+Bug Fixes
+----------------------
+
+* SOLR-2625: TermVectorComponent throws NPE if TF-IDF option is used without DF
+  option. (Daniel Erenrich, Simon Willnauer)
+
+* SOLR-2631: PingRequestHandler should not allow to ping itsself using "qt"
+  param to prevent infinite loop. (Edoardo Tosca, Uwe Schindler)
+
+* SOLR-2636: Fix explain functionality for negative queries. (Tom Hill via yonik)
+
+* SOLR-2538: Range Faceting on long/double fields could overflow if values 
+  bigger then the max int/float were used.
+  (Erbi Hanka, hossman)
+
+* SOLR-2230: CommonsHttpSolrServer.addFile could not be used to send 
+  multiple files in a single request.
+  (Stephan Günther, hossman)
+
+* SOLR-2541: PluginInfos was not correctly parsing <long/> tags when 
+  initializing plugins
+  (Frank Wesemann, hossman)
+
+* SOLR-2623: Solr JMX MBeans do not survive core reloads (Alexey Serba, shalin)
+
+* Fixed grouping bug when start is bigger than rows and format is simple that zero documents are returned even
+  if there are documents to display. (Martijn van Groningen, Nikhil Chhaochharia)
+
+* SOLR-2564: Fixed ArrayIndexOutOfBoundsException when using simple format and
+  start > 0 (Martijn van Groningen, Matteo Melli)
+
+* SOLR-2642: Fixed sorting by function when using grouping. (Thomas Heigl, Martijn van Groningen)
+
+* SOLR-2535: REGRESSION: in Solr 3.x and trunk the admin/file handler
+  fails to show directory listings (David Smiley, Peter Wolanin via Erick Erickson)
+
+* SOLR-2545: ExternalFileField file parsing would fail if any key
+  contained an "=" character.  It now only looks for the last "=" delimiter 
+  prior to the float value.
+  (Markus Jelsma, hossman)
+
+* SOLR-2662: When Solr is configured to have no queryResultCache, the
+  "start" parameter was not honored and the documents returned were
+   0 through start+offset.  (Markus Jelsma, yonik)
+
+* SOLR-2669: Fix backwards validation of field properties in 
+  SchemaField.calcProps (hossman)
+
+* SOLR-2676: Add "welcome-file-list" to solr.war so admin UI works correctly 
+  in servlet containers such as WebSphere that do not use a default list
+  (Jay R. Jaeger, hossman)
+
+* SOLR-2682: Remove addException() in SimpleFacet. FacetComponent no longer catches and embeds
+  exceptions occurred during facet processing, it throws HTTP 400 or 500 exceptions instead. (koji)
+
+* SOLR-2606: Fixed sort parsing of fields containing punctuation that 
+  failed due to sort by function changes introduced in SOLR-1297
+  (Mitsu Hadeishi, hossman)
+
+* SOLR-2734: Fix debug info for MorLikeThisHandler (introduced when SOLR-860 was backported to 3x).
+  (Andrés Cobas, hossman via koji)
+
+ Other Changes
+----------------------
+
+* SOLR-2629: Eliminate deprecation warnings in some JSPs.
+  (Bernd Fehling, hossman)
+
+Build
+----------------------
+
+* SOLR-2452,SOLR-2653,LUCENE-3323,SOLR-2659,LUCENE-3329,SOLR-2666:
+  Rewrote the Solr build system:
+  - Integrated more fully with the Lucene build system: generalized the
+    Lucene build system and eliminated duplication.
+  - Converted all Solr contribs to the Lucene/Solr conventional src/ layout:
+    java/, resources/, test/, and test-files/<contrib-name>.
+  - Created a new Solr-internal module named "core" by moving the java/,
+    test/, and test-files/ directories from solr/src/ to solr/core/src/.
+  - Merged solr/src/webapp/src/ into solr/core/src/java/.
+  - Eliminated solr/src/ by moving all its directories up one level;
+    renamed solr/src/site/ to solr/site-src/ because solr/site/ already
+    exists.
+  - Merged solr/src/common/ into solr/solrj/src/java/.
+  - Moved o.a.s.client.solrj.* and o.a.s.common.* tests from
+    solr/src/test/ to solr/solrj/src/test/.
+  - Made the solrj tests not depend on the solr core tests by moving
+    some classes from solr/src/test/ to solr/test-framework/src/java/.
+  - Each internal module (core/, solrj/, test-framework/, and webapp/)
+    now has its own build.xml, from which it is possible to run
+    module-specific targets.  solr/build.xml delegates all build
+    tasks (via <ant dir="internal-module-dir"> calls) to these
+    modules' build.xml files.
+  (Steve Rowe, Robert Muir)
+
+* LUCENE-3406: Add ant target 'package-local-src-tgz' to Lucene and Solr
+  to package sources from the local working copy.
+  (Seung-Yeoul Yang via Steve Rowe)
+
+Documentation
+----------------------
+
 ==================  3.3.0  ==================
 
 Upgrading from Solr 3.2.0

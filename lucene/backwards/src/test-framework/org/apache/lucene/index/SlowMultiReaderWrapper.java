@@ -41,4 +41,9 @@ public class SlowMultiReaderWrapper extends MultiReader {
   public IndexReader[] getSequentialSubReaders() {
     return null;
   }
+
+  @Override
+  public String toString() {
+    return "SlowMultiReaderWrapper(" + super.toString() + ")";
+  }
 }

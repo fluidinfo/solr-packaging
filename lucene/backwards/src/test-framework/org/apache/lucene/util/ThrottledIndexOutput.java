@@ -18,7 +18,7 @@ package org.apache.lucene.util;
  */
 import java.io.IOException;
 
-import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.IndexOutput;
 
 public class ThrottledIndexOutput extends IndexOutput {
@@ -73,9 +73,11 @@ public class ThrottledIndexOutput extends IndexOutput {
 
   @Override
   public void close() throws IOException {
-    sleep(closeDelayMillis + getDelay(true));
-    delegate.close();
-
+    try {
+      sleep(closeDelayMillis + getDelay(true));
+    } finally {
+      delegate.close();
+    }
   }
 
   @Override
@@ -141,7 +143,7 @@ public class ThrottledIndexOutput extends IndexOutput {
   }
 
   @Override
-  public void copyBytes(IndexInput input, long numBytes) throws IOException {
+  public void copyBytes(DataInput input, long numBytes) throws IOException {
     delegate.copyBytes(input, numBytes);
   }
 }

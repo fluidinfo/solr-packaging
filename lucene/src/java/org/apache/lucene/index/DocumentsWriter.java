@@ -134,7 +134,7 @@ final class DocumentsWriter {
   private final int maxThreadStates;
 
   // Deletes for our still-in-RAM (to be flushed next) segment
-  private BufferedDeletes pendingDeletes = new BufferedDeletes(false);
+  private BufferedDeletes pendingDeletes = new BufferedDeletes();
   
   static class DocState {
     DocumentsWriter docWriter;
@@ -866,13 +866,10 @@ final class DocumentsWriter {
           assert perDoc == null || perDoc.docID == docState.docID;
           final boolean doPause;
           if (perDoc != null) {
-            doPause = waitQueue.add(perDoc);
+            waitQueue.add(perDoc);
           } else {
             skipDocWriter.docID = docState.docID;
-            doPause = waitQueue.add(skipDocWriter);
-          }
-          if (doPause) {
-            waitForWaitQueue();
+            waitQueue.add(skipDocWriter);
           }
         }
 
@@ -931,9 +928,18 @@ final class DocumentsWriter {
         }
       }
     }
-    //System.out.println(Thread.currentThread().getName() + ":   A " + docCount);
 
     synchronized(this) {
+      // We must delay pausing until the full doc block is
+      // added, else we can hit deadlock if more than one
+      // thread is adding a block and we need to pause when
+      // both are only part way done:
+      if (waitQueue.doPause()) {
+        waitForWaitQueue();
+      }
+
+      //System.out.println(Thread.currentThread().getName() + ":   A " + docCount);
+
       if (aborting) {
 
         // We are currently aborting, and another thread is

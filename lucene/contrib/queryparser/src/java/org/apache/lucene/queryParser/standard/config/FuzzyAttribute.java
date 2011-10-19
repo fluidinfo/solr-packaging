@@ -27,7 +27,10 @@ import org.apache.lucene.util.Attribute;
  * processor what is the default phrase slop when no slop is defined in a
  * phrase. <br/>
  * 
+ * @deprecated
+ * 
  */
+@Deprecated
 public interface FuzzyAttribute extends Attribute {
   public void setPrefixLength(int prefixLength);
   public int getPrefixLength();

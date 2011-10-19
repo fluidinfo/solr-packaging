@@ -25,7 +25,7 @@ import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.TermRangeFilter;
-import org.apache.lucene.util.OpenBitSetDISI;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.Version;
 
@@ -37,17 +37,54 @@ public class PKIndexSplitter {
   private final Filter docsInFirstIndex;
   private final Directory input;
   private final Directory dir1;
-  private final Directory dir2; 
+  private final Directory dir2;
+  private final IndexWriterConfig config1;
+  private final IndexWriterConfig config2;
+  
+  /**
+   * Split an index based on a {@link Filter}. All documents that match the filter
+   * are sent to dir1, remaining ones to dir2.
+   * @deprecated use {@link #PKIndexSplitter(Version, Directory, Directory, Directory, Filter)} instead.
+   *             This constructor will be removed in Lucene 4.0. 
+   */
+  @Deprecated
+  public PKIndexSplitter(Directory input, Directory dir1, Directory dir2, Filter docsInFirstIndex) {
+    this(Version.LUCENE_CURRENT, input, dir1, dir2, docsInFirstIndex);
+  }
+  
+  /**
+   * Split an index based on a  given primary key term 
+   * and a 'middle' term.  If the middle term is present, it's
+   * sent to dir2.
+   * @deprecated use {@link #PKIndexSplitter(Version, Directory, Directory, Directory, Term)}
+   *             instead. This constructor will be removed in Lucene 4.0.
+   */
+  @Deprecated
+  public PKIndexSplitter(Directory input, Directory dir1, Directory dir2, Term midTerm) {
+    this(input, dir1, dir2,
+      new TermRangeFilter(midTerm.field(), null, midTerm.text(), true, false));
+  }
   
   /**
    * Split an index based on a {@link Filter}. All documents that match the filter
    * are sent to dir1, remaining ones to dir2.
    */
-  public PKIndexSplitter(Directory input, Directory dir1, Directory dir2, Filter docsInFirstIndex) {
+  public PKIndexSplitter(Version version, Directory input, Directory dir1, Directory dir2, Filter docsInFirstIndex) {
+    this(input, dir1, dir2, docsInFirstIndex, newDefaultConfig(version), newDefaultConfig(version));
+  }
+  
+  private static IndexWriterConfig newDefaultConfig(Version version) {
+    return  new IndexWriterConfig(version, null).setOpenMode(OpenMode.CREATE);
+  }
+  
+  public PKIndexSplitter(Directory input, Directory dir1, 
+      Directory dir2, Filter docsInFirstIndex, IndexWriterConfig config1, IndexWriterConfig config2) {
     this.input = input;
     this.dir1 = dir1;
     this.dir2 = dir2;
     this.docsInFirstIndex = docsInFirstIndex;
+    this.config1 = config1;
+    this.config2 = config2;
   }
   
   /**
@@ -55,48 +92,62 @@ public class PKIndexSplitter {
    * and a 'middle' term.  If the middle term is present, it's
    * sent to dir2.
    */
-  public PKIndexSplitter(Directory input, Directory dir1, Directory dir2, Term midTerm) {
-    this(input, dir1, dir2,
+  public PKIndexSplitter(Version version, Directory input, Directory dir1, Directory dir2, Term midTerm) {
+    this(version, input, dir1, dir2,
       new TermRangeFilter(midTerm.field(), null, midTerm.text(), true, false));
+  }
+  
+  public PKIndexSplitter(Directory input, Directory dir1, 
+      Directory dir2, Term midTerm, IndexWriterConfig config1, IndexWriterConfig config2) {
+    this(input, dir1, dir2,
+      new TermRangeFilter(midTerm.field(), null, midTerm.text(), true, false), config1, config2);
   }
   
   public void split() throws IOException {
     boolean success = false;
     IndexReader reader = IndexReader.open(input);
     try {
-      createIndex(dir1, reader, docsInFirstIndex, false);
-      createIndex(dir2, reader, docsInFirstIndex, true);
+      // pass an individual config in here since one config can not be reused!
+      createIndex(config1, dir1, reader, docsInFirstIndex, false);
+      createIndex(config2, dir2, reader, docsInFirstIndex, true);
       success = true;
     } finally {
-      IOUtils.closeSafely(!success, reader);
+      if (success) {
+        IOUtils.close(reader);
+      } else {
+        IOUtils.closeWhileHandlingException(reader);
+      }
     }
   }
   
-  private void createIndex(Directory target, IndexReader reader, Filter preserveFilter, boolean negateFilter) throws IOException {
+  private void createIndex(IndexWriterConfig config, Directory target, IndexReader reader, Filter preserveFilter, boolean negateFilter) throws IOException {
     boolean success = false;
-    IndexWriter w = new IndexWriter(target, new IndexWriterConfig(
-        Version.LUCENE_CURRENT, null).setOpenMode(OpenMode.CREATE));
+    IndexWriter w = new IndexWriter(target, config);
     try {
       w.addIndexes(new DocumentFilteredIndexReader(reader, preserveFilter, negateFilter));
       success = true;
     } finally {
-      IOUtils.closeSafely(!success, w);
+      if (success) {
+        IOUtils.close(w);
+      } else {
+        IOUtils.closeWhileHandlingException(w);
+      }
     }
   }
     
   public static class DocumentFilteredIndexReader extends FilterIndexReader {
-    final OpenBitSetDISI readerDels;
+    final FixedBitSet readerDels;
     final int numDocs;
     
     public DocumentFilteredIndexReader(IndexReader reader, Filter preserveFilter, boolean negateFilter) throws IOException {
       super(reader);
       
-      final OpenBitSetDISI bits = new OpenBitSetDISI(in.maxDoc());
+      final FixedBitSet bits = new FixedBitSet(in.maxDoc());
       final DocIdSet docs = preserveFilter.getDocIdSet(in);
       if (docs != null) {
         final DocIdSetIterator it = docs.iterator();
         if (it != null) {
-          bits.inPlaceOr(it);
+          bits.or(it);
         }
       }
       // this is somehow inverse, if we negate the filter, we delete all documents it matches!
@@ -113,7 +164,7 @@ public class PKIndexSplitter {
       }
       
       this.readerDels = bits;
-      this.numDocs = in.maxDoc() - (int) bits.cardinality();
+      this.numDocs = in.maxDoc() - bits.cardinality();
     }
     
     @Override

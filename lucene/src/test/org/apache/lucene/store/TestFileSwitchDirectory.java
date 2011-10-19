@@ -18,6 +18,8 @@ package org.apache.lucene.store;
  */
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,6 +30,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.TestIndexWriterReader;
 import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.util._TestUtil;
 
 public class TestFileSwitchDirectory extends LuceneTestCase {
   /**
@@ -76,5 +79,37 @@ public class TestFileSwitchDirectory extends LuceneTestCase {
       assertNotNull(files[i]);
     }
     fsd.close();
+  }
+  
+  private Directory newFSSwitchDirectory(Set<String> primaryExtensions) throws IOException {
+    Directory a = new SimpleFSDirectory(_TestUtil.getTempDir("foo"));
+    Directory b = new SimpleFSDirectory(_TestUtil.getTempDir("bar"));
+    FileSwitchDirectory switchDir = new FileSwitchDirectory(primaryExtensions, a, b, true);
+    return new MockDirectoryWrapper(random, switchDir);
+  }
+  
+  // LUCENE-3380 -- make sure we get exception if the directory really does not exist.
+  public void testNoDir() throws Throwable {
+    Directory dir = newFSSwitchDirectory(Collections.<String>emptySet());
+    try {
+      IndexReader.open(dir, true);
+      fail("did not hit expected exception");
+    } catch (NoSuchDirectoryException nsde) {
+      // expected
+    }
+    dir.close();
+  }
+  
+  // LUCENE-3380 test that we can add a file, and then when we call list() we get it back
+  public void testDirectoryFilter() throws IOException {
+    Directory dir = newFSSwitchDirectory(Collections.<String>emptySet());
+    String name = "file";
+    try {
+      dir.createOutput(name).close();
+      assertTrue(dir.fileExists(name));
+      assertTrue(Arrays.asList(dir.listAll()).contains(name));
+    } finally {
+      dir.close();
+    }
   }
 }

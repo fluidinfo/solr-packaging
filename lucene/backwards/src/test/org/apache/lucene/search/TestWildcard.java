@@ -118,6 +118,23 @@ public class TestWildcard
   }
   
   /**
+   * Tests if a WildcardQuery that has only a trailing * in the term is
+   * rewritten to a single PrefixQuery. The boost and rewriteMethod should be
+   * preserved.
+   */
+  public void testPrefixTerm() throws IOException {
+    Directory indexStore = getIndexStore("field", new String[]{"prefix", "prefixx"});
+    IndexSearcher searcher = new IndexSearcher(indexStore, true);
+
+    MultiTermQuery wq = new WildcardQuery(new Term("field", "prefix*"));
+    assertMatches(searcher, wq, 2);
+    assertTrue(wq.getEnum(searcher.getIndexReader()) instanceof PrefixTermEnum);
+   
+    searcher.close();
+    indexStore.close();
+  }
+
+  /**
    * Tests Wildcard queries with an asterisk.
    */
   public void testAsterisk()

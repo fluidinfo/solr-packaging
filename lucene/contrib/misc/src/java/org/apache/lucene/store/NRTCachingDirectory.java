@@ -137,11 +137,23 @@ public class NRTCachingDirectory extends Directory {
     for(String f : cache.listAll()) {
       files.add(f);
     }
-    for(String f : delegate.listAll()) {
-      // Cannot do this -- if lucene calls createOutput but
-      // file already exists then this falsely trips:
-      //assert !files.contains(f): "file \"" + f + "\" is in both dirs";
-      files.add(f);
+    // LUCENE-1468: our NRTCachingDirectory will actually exist (RAMDir!),
+    // but if the underlying delegate is an FSDir and mkdirs() has not
+    // yet been called, because so far everything is a cached write,
+    // in this case, we don't want to throw a NoSuchDirectoryException
+    try {
+      for(String f : delegate.listAll()) {
+        // Cannot do this -- if lucene calls createOutput but
+        // file already exists then this falsely trips:
+        //assert !files.contains(f): "file \"" + f + "\" is in both dirs";
+        files.add(f);
+      }
+    } catch (NoSuchDirectoryException ex) {
+      // however, if there are no cached files, then the directory truly
+      // does not "exist"
+      if (files.isEmpty()) {
+        throw ex;
+      }
     }
     return files.toArray(new String[files.size()]);
   }
@@ -306,7 +318,7 @@ public class NRTCachingDirectory extends Directory {
         in = cache.openInput(fileName);
         in.copyBytes(out, in.length());
       } finally {
-        IOUtils.closeSafely(false, in, out);
+        IOUtils.close(in, out);
       }
       synchronized(this) {
         cache.deleteFile(fileName);
