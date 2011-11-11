@@ -1,3 +1,9 @@
+solr (3.4.0-0~ppa2~lucid1) lucid; urgency=low
+
+  * Bump version to include the DIH scheduler.
+
+ -- Esteve Fernandez <esteve@fluidinfo.com>  Fri, 11 Nov 2011 10:56:01 +0100
+
 solr (3.4.0-0~ppa1~lucid2) lucid; urgency=low
 
   * New source upload.
