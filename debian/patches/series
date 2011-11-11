@@ -1,3 +1,4 @@
 debian/disable-tests-that-break-on-buildd-2.diff
 debian/fix-lucene-lock-directory-2.diff
 debian/solr-example-solrconfig-2.diff
+debian/dih-scheduler-SOLR-2305.diff
