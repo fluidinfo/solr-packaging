@@ -1,7 +1,7 @@
-Index: solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/ApplicationListener.java
+Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/ApplicationListener.java
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/ApplicationListener.java	2011-11-10 18:11:42.106008204 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/ApplicationListener.java	2011-11-11 11:38:02.118741010 +0100
 @@ -0,0 +1,93 @@
 +/**
 + * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -97,10 +97,10 @@ Index: solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/so
 +
 +}
 \ No newline at end of file
-Index: solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/HttpPostScheduler.java
+Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/HttpPostScheduler.java
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/HttpPostScheduler.java	2011-11-10 18:11:42.106008204 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/HttpPostScheduler.java	2011-11-11 11:38:02.118741010 +0100
 @@ -0,0 +1,188 @@
 +/**
 + * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -291,10 +291,10 @@ Index: solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/so
 +        }
 +}
 \ No newline at end of file
-Index: solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/SolrDataImportProperties.java
+Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/SolrDataImportProperties.java
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/SolrDataImportProperties.java	2011-11-10 18:11:42.106008204 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/SolrDataImportProperties.java	2011-11-11 11:38:02.118741010 +0100
 @@ -0,0 +1,78 @@
 +/**
 + * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -375,10 +375,10 @@ Index: solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/so
 +        }
 +}
 \ No newline at end of file
-Index: solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/dataimport.properties
+Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/dataimport.properties
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/main/java/org/apache/solr/handler/dataimport/scheduler/dataimport.properties	2011-11-10 18:11:42.106008204 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/dataimport.properties	2011-11-11 11:38:02.118741010 +0100
 @@ -0,0 +1,52 @@
 +# dataimport.properties example
 +#
