@@ -1,7 +1,7 @@
 Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/ApplicationListener.java
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/ApplicationListener.java	2011-11-11 12:01:59.000000000 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/ApplicationListener.java	2011-11-29 11:10:46.578303689 +0100
 @@ -0,0 +1,93 @@
 +/**
 + * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -100,7 +100,7 @@ Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/ha
 Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/HttpPostScheduler.java
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/HttpPostScheduler.java	2011-11-11 12:01:59.000000000 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/HttpPostScheduler.java	2011-11-29 11:10:46.578303689 +0100
 @@ -0,0 +1,188 @@
 +/**
 + * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -294,7 +294,7 @@ Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/ha
 Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/SolrDataImportProperties.java
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/SolrDataImportProperties.java	2011-11-11 12:06:28.402281699 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/SolrDataImportProperties.java	2011-11-29 11:10:46.578303689 +0100
 @@ -0,0 +1,79 @@
 +/**
 + * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -378,7 +378,7 @@ Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/ha
 Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/dataimport.properties
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/dataimport.properties	2011-11-11 12:01:59.000000000 +0100
++++ solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/handler/dataimport/scheduler/dataimport.properties	2011-11-29 11:10:46.578303689 +0100
 @@ -0,0 +1,52 @@
 +# dataimport.properties example
 +#
@@ -434,14 +434,21 @@ Index: solr-packaging/solr/contrib/dataimporthandler/src/java/org/apache/solr/ha
 +interval=10
 Index: solr-packaging/solr/webapp/web/WEB-INF/web.xml
 ===================================================================
---- solr-packaging.orig/solr/webapp/web/WEB-INF/web.xml	2011-11-11 12:01:47.663238421 +0100
-+++ solr-packaging/solr/webapp/web/WEB-INF/web.xml	2011-11-11 12:01:59.000000000 +0100
-@@ -150,4 +150,8 @@
+--- solr-packaging.orig/solr/webapp/web/WEB-INF/web.xml	2011-11-29 11:10:40.266293177 +0100
++++ solr-packaging/solr/webapp/web/WEB-INF/web.xml	2011-11-29 11:14:05.442295557 +0100
+@@ -150,4 +150,15 @@
      <welcome-file>index.html</welcome-file>
    </welcome-file-list>
  
++  <!--
++    The DataImportHandler scheduler is not enabled by default. If you want to
++    enable it, uncomment the following and create
++    a file called /etc/solr/conf/dataimport.properties and owned by the tomcat6
++    system user. You can find an example in /usr/share/doc/solr-common.
++
 +  <listener>
 +   <listener-class>org.apache.solr.handler.dataimport.scheduler.ApplicationListener</listener-class>
 +  </listener>
++  -->
 +
  </web-app>
